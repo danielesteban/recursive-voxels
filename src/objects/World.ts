@@ -65,7 +65,7 @@ export class World {
   }
 
   private onWorkerMessage({ data }: { data: Operation }) {
-    const { balls, chunks, instances, lightmap, renderer } = this;
+    const { balls, chunks, instances, lightmap, renderer, worker } = this;
     switch (data.op) {
       case 'balls': {
         const { buffer } = data;
@@ -78,6 +78,10 @@ export class World {
           }
           ball.position = buffer.subarray(i + 1, i + 4);
         }
+        worker.postMessage({
+          op: 'balls',
+          buffer,
+        } satisfies Operation, [buffer.buffer]);
         break;
       }
       case 'chunk': {

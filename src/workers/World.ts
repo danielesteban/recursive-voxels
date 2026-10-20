@@ -54,6 +54,9 @@ Promise.all([
   const VolumeSize = volume.getSize();
   const VolumeChunks = vec3.scale(vec3.create(), VolumeSize, 1 / ChunkSize);
 
+  const maxBalls = 32;
+  let ballsBuffer: Float32Array | null = new Float32Array(maxBalls * 4);
+
   const ballBodies = new Map<number, ReturnType<Physics['addBody']>>();
   const chunkBodies = new Map<string, ReturnType<Physics['addBody']>[]>();
 
@@ -129,6 +132,11 @@ Promise.all([
         ballId = (ballId + 1) % 32;
         break;
       }
+      case 'balls': {
+        const { buffer } = data;
+        ballsBuffer = new Float32Array(buffer.buffer, 0, maxBalls * 4);
+        break;
+      }
       case 'update': {
         const { voxel, value } = data;
         const affectedChunks = new Set<string>();
@@ -158,35 +166,38 @@ Promise.all([
     }
   };
 
+  const aux = vec3.create();
   setInterval(() => {
     physics.step();
 
     {
       let bufferOffset = 0;
-      const buffer = new Float32Array(ballBodies.size * 4);
       for (const [id, body] of ballBodies.entries()) {
         const pos = body.GetPosition();
-        const position = vec3.fromValues(pos.GetX(), pos.GetY(), pos.GetZ());
+        vec3.set(aux, pos.GetX(), pos.GetY(), pos.GetZ());
         let update = false;
-        while (position[0] < 0) { position[0] += VolumeSize[0]; update = true; }
-        while (position[0] >= VolumeSize[0]) { position[0] -= VolumeSize[0]; update = true; }
-        while (position[1] < 0) { position[1] += VolumeSize[1]; update = true; }
-        while (position[1] >= VolumeSize[1]) { position[1] -= VolumeSize[1]; update = true; }
-        while (position[2] < 0) { position[2] += VolumeSize[2]; update = true; }
-        while (position[2] >= VolumeSize[2]) { position[2] -= VolumeSize[2]; update = true; }
-        if (update) physics.setBodyPosition(body, position);
-        buffer.set([
+        while (aux[0] < 0) { aux[0] += VolumeSize[0]; update = true; }
+        while (aux[0] >= VolumeSize[0]) { aux[0] -= VolumeSize[0]; update = true; }
+        while (aux[1] < 0) { aux[1] += VolumeSize[1]; update = true; }
+        while (aux[1] >= VolumeSize[1]) { aux[1] -= VolumeSize[1]; update = true; }
+        while (aux[2] < 0) { aux[2] += VolumeSize[2]; update = true; }
+        while (aux[2] >= VolumeSize[2]) { aux[2] -= VolumeSize[2]; update = true; }
+        if (update) physics.setBodyPosition(body, aux);
+        ballsBuffer?.set([
           id,
-          position[0],
-          position[1],
-          position[2],
+          aux[0],
+          aux[1],
+          aux[2],
         ], bufferOffset);
         bufferOffset += 4;
       }
-      postMessage({
-        op: 'balls',
-        buffer,
-      } satisfies Operation);
+      if (ballsBuffer) {
+        postMessage({
+          op: 'balls',
+          buffer: ballsBuffer.subarray(0, ballBodies.size * 4),
+        } satisfies Operation, [ballsBuffer.buffer]);
+        ballsBuffer = null;
+      }
     }
   }, 1000 / 60);
 });
