@@ -58,7 +58,7 @@ export const Irradiance = (
       },
     ],
   });
-  const projection = mat4.perspective(mat4.create(), glMatrix.toRadian(90), 1, 0.1, 10);
+  const projection = mat4.perspectiveZO(mat4.create(), glMatrix.toRadian(90), 1, 0.1, 10);
   const matrix = mat4.create();
   for (let i = 0; i < 6; i++) {
     const encoder = device.createCommandEncoder();

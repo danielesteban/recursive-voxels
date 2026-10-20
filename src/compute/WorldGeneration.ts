@@ -7,20 +7,22 @@ export const GeneratorDefault = (((BlockType: typeof BlockTypeType, size: vec3) 
   const radiusSQ = Math.min(center[0], center[1], center[2]) ** 2;
   const holeSQ = (Math.min(size[0], size[1], size[2]) / 4) ** 2;
   return (x: number, y: number, z: number) => {
+    x -= center[0];
+    y -= center[1];
+    z -= center[2];
     if (
       (
-        ((x - center[0])  ** 2 + (y - center[1]) ** 2) >= holeSQ
+        (x ** 2 + y ** 2) >= holeSQ
+      ) && (
+        (z ** 2 + y ** 2) >= holeSQ
+      ) && !(
+        x > -16
+        && x < 16
+        && z > -16
+        && z < 16
+      ) && (
+        (x ** 2 + y ** 2 + z ** 2) >= radiusSQ
       )
-      && (
-        ((z - center[2])  ** 2 + (y - center[1]) ** 2) >= holeSQ
-      )
-      && !(
-        x > center[0] - 16
-        && x < center[0] + 16
-        && z > center[2] - 16
-        && z < center[2] + 16
-      )
-      && ((z - center[2]) ** 2 + (y - center[1]) ** 2 + (x - center[0]) ** 2) >= radiusSQ
     ) {
       return BlockType.solid;
     }

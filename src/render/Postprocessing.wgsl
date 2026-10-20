@@ -20,10 +20,10 @@ struct FragmentOutput {
   @location(0) color: vec4f,
 }
 
-const background: vec3f = vec3f(0.01);
+const backgroundColor: vec3f = vec3f(0.01);
 
 const edgeColor: vec3f = vec3f(0.0);
-const edgeIntensity: f32 = 0.25;
+const edgeIntensity: f32 = 0.5;
 const depthScale: f32 = 0.5;
 const normalScale: f32 = 1.0;
 
@@ -53,10 +53,7 @@ fn getEdge(uv: vec2f) -> f32 {
     + abs(br - c)
   );
 
-  return
-    clamp(max((edge.x + edge.y + edge.z) * normalScale, edge.w * depthScale), 0.0, 1.0)
-    * (1.0 - clamp(c.w / 512.0, 0.0, 1.0))
-    * edgeIntensity;
+  return clamp(max((edge.x + edge.y + edge.z) * normalScale, edge.w * depthScale), 0.0, 1.0) * edgeIntensity;
 }
 
 fn linearToSrgb(value: f32) -> f32 {
@@ -107,7 +104,7 @@ fn frag_main(fragment: FragmentInput) -> FragmentOutput {
 
   let edge = getEdge(uv);
   let pixelColor = textureSample(colorTexture, textureSampler, uv);
-  var color = mix(linearToSrgb3(tonemapACES(pixelColor.rgb)), edgeColor, getEdge(uv)) + background * (1.0 - pixelColor.a);
+  var color = linearToSrgb3(tonemapACES(mix(pixelColor.rgb, edgeColor, getEdge(uv) * pixelColor.a) + backgroundColor * (1.0 - pixelColor.a)));
 
   let s = 1.0 - smoothstep(320.0, 1440.0, resolution.y) + 1.0;
   let j = cos(uv.y*resolution.y*s) * 0.1;

@@ -15,7 +15,7 @@ export class Raycaster {
 
   readonly origin = vec3.create();
   readonly direction = vec3.create();
-  maxDistance = 200;
+  maxDistance = 128;
 
   setFromCamera(camera: Camera, position?: vec2) {
     const { origin, direction } = this;

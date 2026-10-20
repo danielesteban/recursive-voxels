@@ -62,7 +62,7 @@ export const Prefiltered = (
       }
     ],
   });
-  const projection = mat4.perspective(mat4.create(), glMatrix.toRadian(90), 1, 0.1, 10);
+  const projection = mat4.perspectiveZO(mat4.create(), glMatrix.toRadian(90), 1, 0.1, 10);
   const matrix = mat4.create();
   for (let mip = 0; mip < levels; mip += 1) {
     const width = texture.width >> mip;

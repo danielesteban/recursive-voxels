@@ -94,7 +94,7 @@ export class Camera {
       projection,
     } = this;
     if (this.projectionNeedsUpdate) {
-      mat4.perspective(projection, glMatrix.toRadian(fov), aspect, near, far);
+      mat4.perspectiveZO(projection, glMatrix.toRadian(fov), aspect, near, far);
       this.projectionNeedsUpdate = false;
       this.bufferNeedsUpdate = true;
       this.frustumNeedsUpdate = true;
