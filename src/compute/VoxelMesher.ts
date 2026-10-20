@@ -242,8 +242,8 @@ export const VoxelMesher = (
     }
   }
   return {
-    index: index.subarray(0, counts.faces * 6),
-    vertices: vertices.subarray(0, counts.faces * 4 * vertexSize),
+    index: new Uint16Array(index.subarray(0, counts.faces * 6)),
+    vertices: new Float32Array(vertices.subarray(0, counts.faces * 4 * vertexSize)),
     lightmap,
   };
 };

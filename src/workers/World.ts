@@ -66,7 +66,7 @@ Promise.all([
       op: 'chunk',
       buffers,
       position,
-    } satisfies Operation);
+    } satisfies Operation, [buffers.index.buffer, buffers.vertices.buffer]);
 
     if (!updatePhysics) {
       return;
@@ -81,14 +81,13 @@ Promise.all([
         physics.removeBody(body);
       }
     }
-    if (!buffers.index.length) {
+    if (!boxes.length) {
       return;
     }
-    const shape = physics.getShape(
-      { type: 'voxels', boxes },
-    );
-    const worldPosition = vec3.scale(vec3.create(), position, ChunkSize);
     bodies = [];
+    chunkBodies.set(key, bodies);
+    const shape = physics.getShape({ type: 'voxels', boxes });
+    const worldPosition = vec3.scale(vec3.create(), position, ChunkSize);
     for (let z = -1; z <= 1; z++) {
       for (let y = -1; y <= 1; y++) {
         for (let x = -1; x <= 1; x++) {
@@ -104,7 +103,6 @@ Promise.all([
       }
     }
     shape.Release();
-    chunkBodies.set(key, bodies);
   };
 
   for (let z = 0; z < VolumeChunks[2]; z++) {
