@@ -92,7 +92,7 @@ export class Physics {
     return shp;
   }
 
-  addBody(shape: initJolt.Shape, position: vec3, layer: PhysicsLayer) {
+  addBody(shape: initJolt.Shape, position: vec3, layer: PhysicsLayer, allowSleeping = true) {
     const { bodyInterface, Jolt } = this;
     const pos = new Jolt.RVec3(position[0], position[1], position[2]);
     const creationSettings = new Jolt.BodyCreationSettings(
@@ -103,6 +103,7 @@ export class Physics {
       layer
     );
     Jolt.destroy(pos);
+    creationSettings.mAllowSleeping = allowSleeping;
     const body = bodyInterface.CreateBody(creationSettings);
     Jolt.destroy(creationSettings);
     bodyInterface.AddBody(body.GetID(), Jolt.EActivation_Activate);

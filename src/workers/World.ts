@@ -123,7 +123,7 @@ Promise.all([
           physics.setBodyPosition(body, position, true);
         } else {
           const shape = physics.getShape({ type: 'sphere', radius: 0.5 });
-          body = physics.addBody(shape, position, PhysicsLayer.dynamic);
+          body = physics.addBody(shape, position, PhysicsLayer.dynamic, false);
           ballBodies.set(ballId, body);
         }
         physics.addBodyImpulse(body, impulse);
