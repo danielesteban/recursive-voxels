@@ -6,7 +6,8 @@ import { VoxelVolume } from 'compute/VoxelVolume';
 import { BlockType, ChunkSize } from 'compute/WorldConstants';
 
 export type Config = {
-  generator: string;
+  data?: string;
+  generator?: string;
   size: vec3;
 };
 
@@ -17,36 +18,49 @@ export type Generator = (
 
 export type Operation = (
   {
-    op: 'ball',
-    position: vec3,
-    impulse: vec3,
+    op: 'ball';
+    position: vec3;
+    impulse: vec3;
   }
   | {
-    op: 'balls',
-    buffer: Float32Array,
+    op: 'balls';
+    buffer: Float32Array;
   }
   | {
-    op: 'chunk',
+    op: 'chunk';
     buffers: {
       index: Uint16Array<ArrayBuffer>;
       vertices: Float32Array<ArrayBuffer>;
       lightmap: Uint8Array<ArrayBuffer>;
     },
-    position: vec3,
+    position: vec3;
   }
   | {
-    op: 'update',
-    voxel: vec3,
-    value: BlockType,
+    op: 'update';
+    voxel: vec3;
+    value: BlockType;
+  }
+  | {
+    op: 'save';
+    volume: string;
   }
 );
 
 Promise.all([
   Physics.create(),
   new Promise<VoxelVolume>((resolve) => {
-    self.onmessage = ({ data: { size, generator } }: { data: Config }) => {
+    self.onmessage = async ({ data: config }: { data: Config }) => {
       self.onmessage = null;
-      resolve(new VoxelVolume(size, (new Function(`return ${generator}`)() as Generator)(BlockType, size)));
+      const volume = new VoxelVolume(config.size);
+      if (config.data) {
+        await volume.load(config.data);
+      }
+      if (config.generator) {
+        volume.generate(
+          (new Function(`return ${config.generator}`)() as Generator)(BlockType, config.size)
+        );
+      }
+      resolve(volume);
     };
   }),
 ])
@@ -113,6 +127,15 @@ Promise.all([
     }
   }
 
+  let saveTimer = 0;
+  const save = async () => {
+    const data = await volume.save();
+    postMessage({
+      op: 'save',
+      volume: data,
+    } satisfies Operation);
+  };
+
   let ballId = 0;
   self.onmessage = ({ data }: { data: Operation }) => {
     switch (data.op) {
@@ -159,6 +182,8 @@ Promise.all([
           const affectedChunk = vec3.fromValues(parseInt(p[0], 10), parseInt(p[1], 10), parseInt(p[2], 10));
           updateChunk(affectedChunk, affectedChunksPhysics.has(key));
         }
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(save, 1000);
         break;
       }
     }

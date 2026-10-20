@@ -13,17 +13,33 @@ export class VoxelVolume {
 
   private readonly data: ArrayBuffer;
   private readonly size: vec3;
+  private readonly encoder: {
+    canvas: OffscreenCanvas;
+    ctx: OffscreenCanvasRenderingContext2D;
+    pixels: ImageData;
+  };
 
-  constructor(size: vec3, generator: (x: number, y: number, z: number) => number) {
-    this.size = size;
+  constructor(size: vec3) {
     this.data = new ArrayBuffer(size[0] * size[1] * size[2] * 2);
+    this.size = size;
 
+    const encoderSize = Math.ceil(Math.sqrt((size[0] * size[1] * size[2]) / 3));
+    const encoderCanvas = new OffscreenCanvas(encoderSize, encoderSize);
+    this.encoder = {
+      canvas: encoderCanvas,
+      ctx: encoderCanvas.getContext('2d')!,
+      pixels: new ImageData(encoderCanvas.width, encoderCanvas.height),
+    };
+  }
+
+  generate(generator: (x: number, y: number, z: number) => number) {
+    const { data, size } = this;
     const lightQueue: Int16Array[] = [];
     for (let i = 0, z = 0; z < size[2]; z++) {
       for (let y = 0; y < size[1]; y++) {
         for (let x = 0; x < size[0]; x++, i += 2) {
           const value = generator(x, y, z);
-          const voxel = new Uint8Array(this.data, i, 2);
+          const voxel = new Uint8Array(data, i, 2);
           voxel[0] = value;
           if (value === BlockType.light) {
             voxel[1] = MaxLight;
@@ -33,6 +49,51 @@ export class VoxelVolume {
       }
     }
     this.floodLight(new Set(), lightQueue);
+  }
+  
+  async load(encoded: string) {
+    const { data, encoder, size } = this;
+    const req = await fetch(`data:image/png;base64,` + encoded);
+    const blob = await req.blob();
+    const image = await createImageBitmap(blob);
+    encoder.ctx.drawImage(image, 0, 0);
+    const pixels = encoder.ctx.getImageData(0, 0, encoder.canvas.width, encoder.canvas.height);
+    image.close();
+    const lightQueue: Int16Array[] = [];
+    for (let i = 0, p = 0, z = 0; z < size[2]; z++) {
+      for (let y = 0; y < size[1]; y++) {
+        for (let x = 0; x < size[0]; x++, i += 2, p++) {
+          const value = pixels.data[p];
+          if (p % 4 === 2) p++;
+          const voxel = new Uint8Array(data, i, 2);
+          voxel[0] = value;
+          if (value === BlockType.light) {
+            voxel[1] = MaxLight;
+            lightQueue.push(new Int16Array([x, y, z]));
+          }
+        }
+      }
+    }
+    this.floodLight(new Set(), lightQueue);
+  }
+
+  async save() {
+    const { data, encoder } = this;
+    for (let i = 0, p = 0, l = data.byteLength; i < l; i += 2, p++) {
+      encoder.pixels.data[p] = new Uint8Array(data, i, 2)[0];
+      if (p % 4 === 2) {
+        p++;
+        encoder.pixels.data[p] = 255;
+      }
+    }
+    encoder.ctx.putImageData(encoder.pixels, 0, 0);
+    const blob = await encoder.canvas.convertToBlob();
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject();
+      reader.onload = () => resolve((reader.result as string).substring('data:image/png;base64,'.length));
+      reader.readAsDataURL(blob);
+    });
   }
 
   getSize(): Readonly<vec3> {

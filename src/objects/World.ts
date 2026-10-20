@@ -10,6 +10,8 @@ import type { Config, Operation } from 'workers/World';
 import Worker from 'workers/World?worker';
 
 export class World {
+  private static readonly storageKey = `recursive-voxels:volume:v1`;
+
   private readonly balls = new Map<number, Ball>();
   private readonly chunks = new Map<string, Chunk>();
   private readonly instances: RecursiveInstances;
@@ -23,8 +25,9 @@ export class World {
     this.renderer = renderer;
     this.worker = new Worker();
     this.worker.onmessage = this.onWorkerMessage.bind(this);
+    const stored = localStorage.getItem(World.storageKey);
     this.worker.postMessage({
-      generator: GeneratorEscher,
+      ...(stored ? { data: stored } : { generator: GeneratorEscher }),
       size: VolumeSize,
     } satisfies Config);
   }
@@ -99,6 +102,11 @@ export class World {
         chunk = new Chunk(renderer, buffers, instances, position);
         chunks.set(key, chunk);
         renderer.addObject(chunk);
+        break;
+      }
+      case 'save': {
+        const { volume } = data;
+        localStorage.setItem(World.storageKey, volume);
         break;
       }
     }
