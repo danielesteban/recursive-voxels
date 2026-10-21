@@ -53,8 +53,8 @@ export class VoxelVolume {
   
   async load(encoded: string) {
     const { data, encoder, size } = this;
-    const req = await fetch(`data:image/png;base64,` + encoded);
-    const blob = await req.blob();
+    const res = await fetch(`data:image/png;base64,` + encoded);
+    const blob = await res.blob();
     const image = await createImageBitmap(blob);
     encoder.ctx.drawImage(image, 0, 0);
     image.close();

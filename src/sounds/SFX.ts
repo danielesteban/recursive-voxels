@@ -15,18 +15,18 @@ export class SFX {
     document.addEventListener('pointerdown', this.onFirstInteraction);
   }
   
-  async onFirstInteraction() {
+  onFirstInteraction() {
     const { buffers } = this;
     const { sounds } = SFX;
     document.removeEventListener('keydown', this.onFirstInteraction);
     document.removeEventListener('pointerdown', this.onFirstInteraction);
-    this.context = new AudioContext();
-    for (const sound of sounds) {
-      const res = await fetch(sound.url);
+    const context = this.context = new AudioContext();
+    sounds.forEach(async ({ key, url }) => {
+      const res = await fetch(url);
       const data = await res.arrayBuffer();
-      const buffer = await this.context.decodeAudioData(data);
-      buffers.set(sound.key, buffer);
-    }
+      const buffer = await context.decodeAudioData(data);
+      buffers.set(key, buffer);
+    });
   }
 
   playAt(
