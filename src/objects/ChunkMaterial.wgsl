@@ -38,7 +38,6 @@ struct FragmentOutput {
   @location(1) data: vec4f,
 }
 
-
 @vertex
 fn vert_main(vertex: VertexInput) -> VertexOutput {
   var output: VertexOutput;
@@ -46,7 +45,7 @@ fn vert_main(vertex: VertexInput) -> VertexOutput {
   output.position = camera.projection * camera.view * vec4f(output.worldPos, 1.0);
   output.blockType = vertex.blockType;
   output.light = vertex.light;
-  output.normal = vertex.normal;
+  output.normal = transform.normal * vertex.normal;
   output.uv = vertex.uv;
   return output;
 }

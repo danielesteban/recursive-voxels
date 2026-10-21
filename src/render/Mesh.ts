@@ -1,4 +1,4 @@
-import { mat4, quat, vec3 } from 'gl-matrix';
+import { mat3, mat4, quat, vec3 } from 'gl-matrix';
 import type { Intersection, Ray } from 'compute/Raycaster';
 import { Sphere } from 'math/Sphere';
 import type { Geometry } from 'render/Geometry';
@@ -19,6 +19,7 @@ export class Mesh<GeometryType extends Geometry = Geometry, MaterialType extends
     cpu: {
       matrix: mat4;
       inverse: mat4;
+      normal: mat3;
       needsUpdate: boolean;
     },
     gpu: {
@@ -51,11 +52,12 @@ export class Mesh<GeometryType extends Geometry = Geometry, MaterialType extends
       cpu: {
         matrix: mat4.create(),
         inverse: mat4.create(),
+        normal: mat3.create(),
         needsUpdate: true,
       },
       gpu: {
         buffer: device.createBuffer({
-          size: 16 * 2 * 4,
+          size: 16 * 3 * 4,
           usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
         }),
         needsUpdate: true,
@@ -150,6 +152,7 @@ export class Mesh<GeometryType extends Geometry = Geometry, MaterialType extends
     if (transform.cpu.needsUpdate) {
       mat4.fromRotationTranslationScale(transform.cpu.matrix, rotation, position, scale);
       mat4.invert(transform.cpu.inverse, transform.cpu.matrix);
+      mat3.normalFromMat4(transform.cpu.normal, transform.cpu.matrix);
       transform.cpu.needsUpdate = false;
       transform.gpu.needsUpdate = true;
       this.boundsNeedsUpdate = true;
@@ -177,6 +180,9 @@ export class Mesh<GeometryType extends Geometry = Geometry, MaterialType extends
       renderer.getDevice().queue.writeBuffer(transform.gpu.buffer, 0, new Float32Array([
         ...transform.cpu.matrix,
         ...transform.cpu.inverse,
+        ...(transform.cpu.normal as Float32Array).subarray(0, 3), 0,
+        ...(transform.cpu.normal as Float32Array).subarray(3, 6), 0,
+        ...(transform.cpu.normal as Float32Array).subarray(6, 9), 0,
       ]));
       transform.gpu.needsUpdate = false;
     }
@@ -193,5 +199,6 @@ export const TransformGPUStruct = /* wgsl */`
 struct Transform {
   matrix: mat4x4<f32>,
   inverse: mat4x4<f32>,
+  normal: mat3x3<f32>,
 }
 `;

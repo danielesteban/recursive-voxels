@@ -36,7 +36,7 @@ fn vert_main(vertex: VertexInput) -> VertexOutput {
   var output: VertexOutput;
   output.worldPos = (transform.matrix * vec4f(vertex.position, 1.0)).xyz + vertex.instance;
   output.position = camera.projection * camera.view * vec4f(output.worldPos, 1.0);
-  output.normal = vertex.normal;
+  output.normal = transform.normal * vertex.normal;
   return output;
 }
 
