@@ -52,13 +52,23 @@ export class SFX {
     });
     source.connect(panner);
     panner.connect(gain);
+    let filter: BiquadFilterNode | undefined;
     if (filtering) {
-      const filter = new BiquadFilterNode(context, filtering);
+      filter = new BiquadFilterNode(context, filtering);
       gain.connect(filter);
       filter.connect(context.destination);
     } else {
       gain.connect(context.destination);
     }
+    source.onended = () => {
+      source.disconnect(panner);
+      panner.disconnect(gain);
+      if (filter) {
+        filter.disconnect(context.destination);
+      } else {
+        gain.disconnect(context.destination);
+      }
+    };
     source.start(context.currentTime);
   }
 
