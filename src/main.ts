@@ -65,6 +65,13 @@ Promise.all([
             brush = BlockType.air;
           }
           world.update(hit.position, brush);
+          renderer.getSFX().playAt(
+            'build',
+            hit.position,
+            1,
+            (Math.random() - 0.5) * 1000,
+            { type: pointer.primaryDown ? 'lowpass': 'highpass', frequency: 1000 + Math.random() * 1000 }
+          );
         });
     }
     if (pointer.tertiaryDown) {

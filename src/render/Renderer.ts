@@ -4,6 +4,7 @@ import { Camera } from 'render/Camera';
 import { Geometry } from 'render/Geometry';
 import { Postprocessing } from 'render/Postprocessing';
 import * as Primitives from 'render/Primitives';
+import { SFX } from 'sounds/SFX';
 import { BRDF } from 'textures/BRDF';
 import { Cubemap } from 'textures/Cubemap';
 import { Irradiance } from 'textures/Irradiance';
@@ -49,7 +50,8 @@ export class Renderer {
     render: new Map<string, GPURenderPipeline>(),
   };
   private readonly postprocessing: Postprocessing;
-  private readonly sampleCount;
+  private readonly sampleCount: number;
+  private readonly sfx: SFX;
   private readonly size = { width: 0, height: 0 };
   private readonly textures: {
     BRDF: GPUTexture,
@@ -86,6 +88,7 @@ export class Renderer {
       format: this.colorFormat,
     });
     this.sampleCount = sampleCount;
+    this.sfx = new SFX();
     this.postprocessing = new Postprocessing(this);
     this.textures.BRDF = BRDF(device);
   }
@@ -120,6 +123,10 @@ export class Renderer {
 
   getSampleCount() {
     return this.sampleCount;
+  }
+  
+  getSFX() {
+    return this.sfx;
   }
 
   getDefaultGeometry(key: keyof typeof Primitives) {
@@ -242,8 +249,9 @@ export class Renderer {
   }
 
   animate(delta: number, time: number) {
-    const { camera, objects } = this;
+    const { camera, objects, sfx } = this;
     camera.update();
+    sfx.updateListener(delta, camera.getViewInverse());
     objects.forEach((obj) => obj.animate?.(delta, time));
     return this;
   }
