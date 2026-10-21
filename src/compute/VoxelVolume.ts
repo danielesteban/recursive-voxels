@@ -57,8 +57,8 @@ export class VoxelVolume {
     const blob = await req.blob();
     const image = await createImageBitmap(blob);
     encoder.ctx.drawImage(image, 0, 0);
-    const pixels = encoder.ctx.getImageData(0, 0, encoder.canvas.width, encoder.canvas.height);
     image.close();
+    const pixels = encoder.ctx.getImageData(0, 0, encoder.canvas.width, encoder.canvas.height);
     const lightQueue: Int16Array[] = [];
     for (let i = 0, p = 0, z = 0; z < size[2]; z++) {
       for (let y = 0; y < size[1]; y++) {
