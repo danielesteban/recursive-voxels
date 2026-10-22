@@ -25,11 +25,13 @@ export class Physics {
     });
     return new Physics(Jolt);
   }
-  
+
   private readonly Jolt: typeof initJolt;
   private readonly jolt: initJolt.JoltInterface;
   private readonly bodyInterface: initJolt.BodyInterface;
+  private readonly contactListener: initJolt.ContactListenerJS;
   private readonly physicsSystem: initJolt.PhysicsSystem;
+  private onContact?: (body1: initJolt.Body, body2: initJolt.Body, manifold: initJolt.ContactManifold, settings: initJolt.ContactSettings) => void;
   private lastTick: number;
 
   constructor(Jolt: typeof initJolt) {
@@ -59,7 +61,33 @@ export class Physics {
     this.physicsSystem = this.jolt.GetPhysicsSystem();
     this.bodyInterface = this.physicsSystem.GetBodyInterface();
 
+    this.contactListener = new Jolt.ContactListenerJS();
+    this.contactListener.OnContactAdded = this.onContactAdded.bind(this);
+    this.contactListener.OnContactPersisted = this.contactListener.OnContactAdded;
+    this.contactListener.OnContactValidate = this.onContactValidate.bind(this);
+    this.contactListener.OnContactRemoved = this.onContactRemoved.bind(this);
+    this.physicsSystem.SetContactListener(this.contactListener);
+
     this.lastTick = performance.now() / 1000;
+  }
+
+  private onContactAdded(body1P: number, body2P: number, manifoldP: number, settingsP: number) {
+    const { Jolt, onContact } = this;
+    onContact?.(
+      Jolt.wrapPointer(body1P, Jolt.Body),
+      Jolt.wrapPointer(body2P, Jolt.Body),
+      Jolt.wrapPointer(manifoldP, Jolt.ContactManifold),
+      Jolt.wrapPointer(settingsP, Jolt.ContactSettings)
+    );
+  }
+
+  private onContactValidate(_body1: number, _body2: number, _baseOffset: number, _collideShapeResult: number) {
+    const { Jolt } = this;
+    return Jolt.ValidateResult_AcceptAllContactsForThisBodyPair;
+  }
+
+  private onContactRemoved(_subShapePair: number) {
+
   }
 
   getShape(shape: PhysicsShape) {
@@ -131,6 +159,10 @@ export class Physics {
     if (resetVelocity) {
       bodyInterface.SetLinearAndAngularVelocity(body.GetID(), Jolt.Vec3.prototype.sZero(), Jolt.Vec3.prototype.sZero());
     }
+  }
+
+  setOnContact(callback: typeof this.onContact) {
+    this.onContact = callback;
   }
 
   step() {

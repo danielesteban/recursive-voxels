@@ -44,6 +44,14 @@ export type Operation = (
     op: 'save';
     volume: string;
   }
+  | {
+    op: 'sfx';
+    sound: string;
+    position: vec3;
+    volume?: number;
+    detune?: number;
+    filter?: BiquadFilterOptions;
+  }
 );
 
 Promise.all([

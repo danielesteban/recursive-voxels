@@ -109,6 +109,11 @@ export class World {
         localStorage.setItem(World.storageKey, volume);
         break;
       }
+      case 'sfx': {
+        const { sound, position, volume, detune, filter } = data;
+        renderer.getSFX().playAt(sound, position, volume, detune, filter);
+        break;
+      }
     }
   }
 }

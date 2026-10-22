@@ -194,10 +194,6 @@ export class Postprocessing {
               binding: 2,
               resource: uniforms.blurDirectionH,
             },
-            {
-              binding: 3,
-              resource: uniforms.resolution,
-            },
           ],
         }),
         pipeline: pipelines.blur,
@@ -218,10 +214,6 @@ export class Postprocessing {
             {
               binding: 2,
               resource: uniforms.blurDirectionV,
-            },
-            {
-              binding: 3,
-              resource: uniforms.resolution,
             },
           ],
         }),

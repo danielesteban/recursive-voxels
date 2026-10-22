@@ -76,9 +76,16 @@ Promise.all([
     }
     if (pointer.tertiaryDown) {
       const { position, direction } = renderer.getCamera();
+      const origin = vec3.scaleAndAdd(vec3.create(), position, direction, 0.5);
       world.shootBall(
-        vec3.scaleAndAdd(vec3.create(), position, direction, 0.5),
+        origin,
         vec3.scale(vec3.create(), direction, 10000.0)
+      );
+      renderer.getSFX().playAt(
+        'shot',
+        origin,
+        1,
+        (Math.random() - 0.5) * 500,
       );
     }
 

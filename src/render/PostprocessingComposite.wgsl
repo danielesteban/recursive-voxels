@@ -35,7 +35,7 @@ fn frag_main(fragment: FragmentInput) -> FragmentOutput {
 
   let pixel = textureSample(colorTexture, textureSampler, uv);
   let blur = textureSample(blurTexture, textureSampler, uv);
-  var color = linearToSrgb3(tonemapACES(mix(pixel.rgb, blur.rgb, 1.0 - pixel.a)));
+  var color = linearToSrgb3(tonemapACES(mix(pixel.rgb, blur.rgb, pow(1.0 - blur.a, 2.0))));
 
   let s = 1.0 - smoothstep(320.0, 1440.0, resolution.y) + 1.0;
   let j = cos(uv.y*resolution.y*s) * 0.1;

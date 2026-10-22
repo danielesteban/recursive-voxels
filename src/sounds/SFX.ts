@@ -1,9 +1,11 @@
 import { mat4, quat, vec3 } from 'gl-matrix';
 import BuildSFX from 'sounds/build.mp3';
+import ShotSFX from 'sounds/shot.mp3';
 
 export class SFX {
   private static readonly sounds = [
     { key: 'build', url: BuildSFX },
+    { key: 'shot', url: ShotSFX },
   ];
 
   private readonly buffers: Map<string, AudioBuffer> = new Map();
