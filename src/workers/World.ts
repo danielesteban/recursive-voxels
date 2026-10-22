@@ -32,8 +32,16 @@ export type Operation = (
       index: Uint16Array<ArrayBuffer>;
       vertices: Float32Array<ArrayBuffer>;
       lightmap: Uint8Array<ArrayBuffer>;
-    },
+    };
     position: vec3;
+  }
+  | {
+    op: 'player';
+    position: vec3;
+  }
+  | {
+    op: 'playerMovement';
+    movement: vec3;
   }
   | {
     op: 'update';
@@ -82,6 +90,18 @@ Promise.all([
   const ballBodies = new Map<number, ReturnType<Physics['addBody']>>();
   const chunkBodies = new Map<string, ReturnType<Physics['addBody']>[]>();
 
+  const player = {
+    body: physics.addBody({
+      allowRotation: false,
+      gravityFactor: 0,
+      linearDamping: 10,
+      layer: PhysicsLayer.dynamic,
+      position: vec3.create(),
+      shape: physics.getShape({ type: 'sphere', radius: 0.5 }),
+    }),
+    movement: vec3.create(),
+  };
+
   const updateChunk = (position: vec3, updatePhysics: boolean) => {
     const buffers = VoxelMesher(position, volume);
     postMessage({
@@ -115,11 +135,11 @@ Promise.all([
         for (let x = -1; x <= 1; x++) {
           const instance = vec3.fromValues(x, y, z);
           vec3.multiply(instance, instance, VolumeSize);
-          const body = physics.addBody(
+          const body = physics.addBody({
+            layer: PhysicsLayer.static,
+            position: vec3.add(vec3.create(), instance, worldPosition),
             shape,
-            vec3.add(vec3.create(), instance, worldPosition),
-            PhysicsLayer.static
-          );
+          });
           bodies.push(body);      
         }
       }
@@ -127,13 +147,20 @@ Promise.all([
     shape.Release();
   };
 
-  for (let z = 0; z < VolumeChunks[2]; z++) {
-    for (let y = 0; y < VolumeChunks[1]; y++) {
-      for (let x = 0; x < VolumeChunks[0]; x++) {
-        updateChunk(vec3.fromValues(x, y, z), true);
-      }
-    }
-  }
+  const aux = vec3.create();
+  const wrapBody = (body: ReturnType<Physics['addBody']>) => {
+    const pos = body.GetPosition();
+    vec3.set(aux, pos.GetX(), pos.GetY(), pos.GetZ());
+    let update = false;
+    while (aux[0] < 0) { aux[0] += VolumeSize[0]; update = true; }
+    while (aux[0] >= VolumeSize[0]) { aux[0] -= VolumeSize[0]; update = true; }
+    while (aux[1] < 0) { aux[1] += VolumeSize[1]; update = true; }
+    while (aux[1] >= VolumeSize[1]) { aux[1] -= VolumeSize[1]; update = true; }
+    while (aux[2] < 0) { aux[2] += VolumeSize[2]; update = true; }
+    while (aux[2] >= VolumeSize[2]) { aux[2] -= VolumeSize[2]; update = true; }
+    if (update) physics.setBodyPosition(body, aux);
+    return aux;
+  };
 
   let saveTimer = 0;
   const save = async () => {
@@ -144,6 +171,14 @@ Promise.all([
     } satisfies Operation);
   };
 
+  for (let z = 0; z < VolumeChunks[2]; z++) {
+    for (let y = 0; y < VolumeChunks[1]; y++) {
+      for (let x = 0; x < VolumeChunks[0]; x++) {
+        updateChunk(vec3.fromValues(x, y, z), true);
+      }
+    }
+  }
+
   let ballId = 0;
   self.onmessage = ({ data }: { data: Operation }) => {
     switch (data.op) {
@@ -153,8 +188,12 @@ Promise.all([
         if (body) {
           physics.setBodyPosition(body, position, true);
         } else {
-          const shape = physics.getShape({ type: 'sphere', radius: 0.5 });
-          body = physics.addBody(shape, position, PhysicsLayer.dynamic, false);
+          body = physics.addBody({
+            allowSleeping: false,
+            layer: PhysicsLayer.dynamic,
+            position,
+            shape: physics.getShape({ type: 'sphere', radius: 0.5 }),
+          });
           ballBodies.set(ballId, body);
         }
         physics.addBodyImpulse(body, impulse);
@@ -164,6 +203,11 @@ Promise.all([
       case 'balls': {
         const { buffer } = data;
         ballsBuffer = new Float32Array(buffer.buffer, 0, maxBalls * 4);
+        break;
+      }
+      case 'playerMovement': {
+        const { movement } = data;
+        vec3.copy(player.movement, movement);
         break;
       }
       case 'update': {
@@ -197,28 +241,26 @@ Promise.all([
     }
   };
 
-  const aux = vec3.create();
+  let lastTick = performance.now() / 1000;
   setInterval(() => {
-    physics.step();
+    const time = performance.now() / 1000;
+    const delta = Math.min(time - lastTick, 1 / 30);
+    lastTick = time;
+
+    if (player.movement[0] || player.movement[1] || player.movement[2]) {
+      physics.addBodyImpulse(player.body, vec3.scale(aux, player.movement, 2000 * delta));
+    }
+    physics.step(delta);
 
     {
       let bufferOffset = 0;
       for (const [id, body] of ballBodies.entries()) {
-        const pos = body.GetPosition();
-        vec3.set(aux, pos.GetX(), pos.GetY(), pos.GetZ());
-        let update = false;
-        while (aux[0] < 0) { aux[0] += VolumeSize[0]; update = true; }
-        while (aux[0] >= VolumeSize[0]) { aux[0] -= VolumeSize[0]; update = true; }
-        while (aux[1] < 0) { aux[1] += VolumeSize[1]; update = true; }
-        while (aux[1] >= VolumeSize[1]) { aux[1] -= VolumeSize[1]; update = true; }
-        while (aux[2] < 0) { aux[2] += VolumeSize[2]; update = true; }
-        while (aux[2] >= VolumeSize[2]) { aux[2] -= VolumeSize[2]; update = true; }
-        if (update) physics.setBodyPosition(body, aux);
+        const position = wrapBody(body);
         ballsBuffer?.set([
           id,
-          aux[0],
-          aux[1],
-          aux[2],
+          position[0],
+          position[1],
+          position[2],
         ], bufferOffset);
         bufferOffset += 4;
       }
@@ -229,6 +271,13 @@ Promise.all([
         } satisfies Operation, [ballsBuffer.buffer]);
         ballsBuffer = null;
       }
+    }
+    {
+      const position = wrapBody(player.body);
+      postMessage({
+        op: 'player',
+        position,
+      } satisfies Operation);
     }
   }, 1000 / 60);
 });

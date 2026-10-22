@@ -38,9 +38,10 @@ Promise.all([
     clock = time;
     fps.update(time);
 
-    const pointer = input.getPointer();
-    input.update(delta);
+    input.update(delta, world.getPlayer(), world.getSize());
+    world.setPlayerMovement(input.getMovement());
 
+    const pointer = input.getPointer();
     if (pointer.primaryDown || pointer.secondaryDown) {
       raycaster
         .setFromCamera(renderer.getCamera())

@@ -1,5 +1,4 @@
 import { vec3 } from 'gl-matrix';
-import { VolumeSize } from 'compute/WorldConstants';
 import { Camera } from 'render/Camera';
 import type { Renderer } from 'render/Renderer';
 
@@ -21,7 +20,7 @@ export class Input {
       theta: 0,
     },
   };
-  private static minSpeed = Math.log(2);
+  private static minSpeed = Math.log(1);
   private static maxSpeed = Math.log(64);
   private static speedRange = Input.maxSpeed - Input.minSpeed;
   private speed = 16;
@@ -220,41 +219,14 @@ export class Input {
     );
   }
 
-  getPointer(): typeof this.pointer {
-    return { ...this.pointer };
-  }
-
-  getTool() {
-    return this.tool;
-  }
-
   private static readonly aux2 = vec3.create();
   private static readonly aux3 = vec3.create();
-  private static readonly aux4 = vec3.create();
-  update(delta: number) {
-    const { camera, look, movement, pointer, speed } = this;
-    const { aux2: right, aux3: move, aux4: position } = Input;
-
-    const lambda = 20;
-    let directionNeedsUpdate = false;
-    for (const key of ['phi', 'theta'] as (keyof typeof look.state)[]) {
-      if (look.state[key] !== look.target[key]) {
-        const diff = look.target[key] - look.state[key];
-        if (Math.abs(diff) > 0.001) {
-          look.state[key] += diff * (1 - Math.exp(-lambda * delta));
-        } else {
-          look.state[key] = look.target[key];
-        }
-        directionNeedsUpdate = true;
-      }
-    }
-    if (directionNeedsUpdate) {
-      this.updateDirection();
-    }
-
+  getMovement() {
+    const { camera, movement, speed } = this;
+    const { aux2: right, aux3: move } = Input;
+    vec3.set(move, 0, 0, 0);
     if (movement.x.length || movement.y.length || movement.z.length) {
       vec3.cross(right, camera.direction, Camera.up);
-      vec3.set(move, 0, 0, 0);
       if (movement.x.length) {
         vec3.scaleAndAdd(move, move, right, movement.x[0]);
       }
@@ -265,19 +237,64 @@ export class Input {
         vec3.scaleAndAdd(move, move, camera.direction, movement.z[0]);
       }
       vec3.normalize(move, move);
-      vec3.scale(move, move, speed * delta);
-      vec3.add(position, camera.position, move);
-      while (position[0] < 0) position[0] += VolumeSize[0];
-      while (position[0] >= VolumeSize[0]) position[0] -= VolumeSize[0];
-      while (position[1] < 0) position[1] += VolumeSize[1];
-      while (position[1] >= VolumeSize[1]) position[1] -= VolumeSize[1];
-      while (position[2] < 0) position[2] += VolumeSize[2];
-      while (position[2] >= VolumeSize[2]) position[2] -= VolumeSize[2];
-      camera.position = position;
+      vec3.scale(move, move, speed);
     }
+    return move;
+  }
 
+  getPointer() {
+    const { pointer } = this;
+    const data = { ...pointer };
     pointer.primaryDown = pointer.primaryUp = false;
     pointer.secondaryDown = pointer.secondaryUp = false;
     pointer.tertiaryDown = pointer.tertiaryUp = false;
+    return data;
+  }
+
+  getTool() {
+    return this.tool;
+  }
+
+  private static readonly aux4 = Array.from({ length: 3 * 3 * 3 }, () => vec3.create());
+  update(delta: number, player: vec3, size: vec3) {
+    const { camera, look } = this;
+    const { aux4: targets } = Input;
+
+    const damp = Math.exp(-20 * delta);
+    let directionNeedsUpdate = false;
+    for (const key of ['phi', 'theta'] as (keyof typeof look.state)[]) {
+      if (look.state[key] !== look.target[key]) {
+        const diff = look.target[key] - look.state[key];
+        if (Math.abs(diff) > 0.001) {
+          look.state[key] += diff * (1 - damp);
+        } else {
+          look.state[key] = look.target[key];
+        }
+        directionNeedsUpdate = true;
+      }
+    }
+    if (directionNeedsUpdate) {
+      this.updateDirection();
+    }
+
+    if (vec3.distance(camera.position, player) > 0.001) {
+      for (let i = 0, z = -1; z <= 1; z++) {
+        for (let y = -1; y <= 1; y++) {
+          for (let x = -1; x <= 1; x++, i++) {
+            const target = targets[i];
+            vec3.set(target, x, y, z);
+            vec3.multiply(target, target, size);
+            vec3.add(target, target, camera.position);
+          }
+        }
+      }
+      targets.sort((a, b) => vec3.sqrDist(a, player) - vec3.sqrDist(b, player));
+      camera.position = vec3.lerp(
+        vec3.create(),
+        targets[0],
+        player,
+        Math.exp(-40 * delta)
+      );
+    }
   }
 }

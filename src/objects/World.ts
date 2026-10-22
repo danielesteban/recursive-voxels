@@ -1,9 +1,9 @@
-import type { vec3 } from 'gl-matrix';
+import { vec3 } from 'gl-matrix';
 import { Ball } from 'objects/Ball';
 import { Chunk } from 'objects/Chunk';
 import { RecursiveInstances } from 'compute/RecursiveInstances';
 import { VoxelLightmap } from 'compute/VoxelLightmap';
-import { BlockType, VolumeSize } from 'compute/WorldConstants';
+import { BlockType, ChunkSize } from 'compute/WorldConstants';
 import { GeneratorEscher } from 'compute/WorldGeneration';
 import type { Renderer } from 'render/Renderer';
 import type { Config, Operation } from 'workers/World';
@@ -16,19 +16,23 @@ export class World {
   private readonly chunks = new Map<string, Chunk>();
   private readonly instances: RecursiveInstances;
   private readonly lightmap: VoxelLightmap;
+  private readonly player = vec3.create();
   private readonly renderer: Renderer;
+  private readonly size: vec3;
   private readonly worker: Worker;
 
   constructor(renderer: Renderer) {
-    this.instances = new RecursiveInstances(renderer, VolumeSize);
-    this.lightmap = new VoxelLightmap(renderer, VolumeSize);
+    const size = vec3.scale(vec3.create(), vec3.fromValues(4, 4, 4), ChunkSize);
+    this.instances = new RecursiveInstances(renderer, size);
+    this.lightmap = new VoxelLightmap(renderer, size);
     this.renderer = renderer;
+    this.size = size;
     this.worker = new Worker();
     this.worker.onmessage = this.onWorkerMessage.bind(this);
     const stored = localStorage.getItem(World.storageKey);
     this.worker.postMessage({
       ...(stored ? { data: stored } : { generator: GeneratorEscher }),
-      size: VolumeSize,
+      size,
     } satisfies Config);
   }
 
@@ -47,6 +51,22 @@ export class World {
   getChunks(): Chunk[] {
     const { chunks } = this;
     return Array.from(chunks.values());
+  }
+
+  getPlayer(): Readonly<vec3> {
+    return this.player;
+  }
+
+  getSize(): Readonly<vec3> {
+    return this.size;
+  }
+
+  setPlayerMovement(movement: vec3) {
+    const { worker } = this;
+    worker.postMessage({
+      op: 'playerMovement',
+      movement,
+    } satisfies Operation);
   }
 
   shootBall(position: vec3, impulse: vec3) {
@@ -68,7 +88,7 @@ export class World {
   }
 
   private onWorkerMessage({ data }: { data: Operation }) {
-    const { balls, chunks, instances, lightmap, renderer, worker } = this;
+    const { balls, chunks, instances, lightmap, player, renderer, worker } = this;
     switch (data.op) {
       case 'balls': {
         const { buffer } = data;
@@ -102,6 +122,11 @@ export class World {
         chunk = new Chunk(renderer, buffers, instances, position);
         chunks.set(key, chunk);
         renderer.addObject(chunk);
+        break;
+      }
+      case 'player': {
+        const { position } = data;
+        vec3.copy(player, position);
         break;
       }
       case 'save': {

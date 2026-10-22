@@ -5,7 +5,7 @@ import joltWasmUrl from "jolt-physics/jolt-physics.wasm.wasm?url";
 export enum PhysicsLayer {
   static,
   dynamic,
-};
+}
 
 type PhysicsShape = (
   {
@@ -32,7 +32,6 @@ export class Physics {
   private readonly contactListener: initJolt.ContactListenerJS;
   private readonly physicsSystem: initJolt.PhysicsSystem;
   private onContact?: (body1: initJolt.Body, body2: initJolt.Body, manifold: initJolt.ContactManifold, settings: initJolt.ContactSettings) => void;
-  private lastTick: number;
 
   constructor(Jolt: typeof initJolt) {
     this.Jolt = Jolt;
@@ -67,8 +66,6 @@ export class Physics {
     this.contactListener.OnContactValidate = this.onContactValidate.bind(this);
     this.contactListener.OnContactRemoved = this.onContactRemoved.bind(this);
     this.physicsSystem.SetContactListener(this.contactListener);
-
-    this.lastTick = performance.now() / 1000;
   }
 
   private onContactAdded(body1P: number, body2P: number, manifoldP: number, settingsP: number) {
@@ -120,7 +117,23 @@ export class Physics {
     return shp;
   }
 
-  addBody(shape: initJolt.Shape, position: vec3, layer: PhysicsLayer, allowSleeping = true) {
+  addBody({
+    allowSleeping = true,
+    allowRotation = true,
+    gravityFactor = 1,
+    layer,
+    linearDamping,
+    position,
+    shape,
+  }: {
+    allowRotation?: boolean;
+    allowSleeping?: boolean;
+    gravityFactor?: number;
+    layer: PhysicsLayer;
+    linearDamping?: number;
+    position: vec3;
+    shape: initJolt.Shape;
+  }) {
     const { bodyInterface, Jolt } = this;
     const pos = new Jolt.RVec3(position[0], position[1], position[2]);
     const creationSettings = new Jolt.BodyCreationSettings(
@@ -131,7 +144,18 @@ export class Physics {
       layer
     );
     Jolt.destroy(pos);
+    if (!allowRotation) {
+      creationSettings.mAllowedDOFs = (
+        Jolt.EAllowedDOFs_TranslationX
+        | Jolt.EAllowedDOFs_TranslationY
+        | Jolt.EAllowedDOFs_TranslationZ
+      );
+    }
     creationSettings.mAllowSleeping = allowSleeping;
+    creationSettings.mGravityFactor = gravityFactor;
+    if (linearDamping) {
+      creationSettings.mLinearDamping = linearDamping;
+    }
     const body = bodyInterface.CreateBody(creationSettings);
     Jolt.destroy(creationSettings);
     bodyInterface.AddBody(body.GetID(), Jolt.EActivation_Activate);
@@ -165,12 +189,9 @@ export class Physics {
     this.onContact = callback;
   }
 
-  step() {
+  step(delta: number) {
     const { jolt } = this;
-    const time = performance.now() / 1000;
-    const delta = Math.min(time - this.lastTick, 1 / 30);
     const steps = delta > 1 / 55 ? 2 : 1;
-    this.lastTick = time;
     jolt.Step(delta, steps);
   }
 }
