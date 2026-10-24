@@ -8,6 +8,7 @@ import { SFX } from 'sounds/SFX';
 import { BRDF } from 'textures/BRDF';
 import { Cubemap } from 'textures/Cubemap';
 import { Irradiance } from 'textures/Irradiance';
+import { Palette } from 'textures/Palette';
 import { Prefiltered } from 'textures/Prefiltered';
 
 export class Renderer {
@@ -54,9 +55,10 @@ export class Renderer {
   private readonly sfx: SFX;
   private readonly size = { width: 0, height: 0 };
   private readonly textures: {
-    BRDF: GPUTexture,
+    BRDF: GPUTexture;
     Environment: GPUTexture;
     Irradiance: GPUTexture;
+    Palette: GPUTexture;
     Prefiltered: GPUTexture;
     depth: GPUTexture;
     outputColor: GPUTexture;
@@ -65,6 +67,7 @@ export class Renderer {
     BRDF: null!,
     Environment: null!,
     Irradiance: null!,
+    Palette: null!,
     Prefiltered: null!,
     depth: null!,
     outputColor: null!,
@@ -91,6 +94,7 @@ export class Renderer {
     this.sfx = new SFX();
     this.postprocessing = new Postprocessing(this);
     this.textures.BRDF = BRDF(device);
+    this.textures.Palette = Palette(device);
   }
 
   destroy() {
@@ -163,7 +167,7 @@ export class Renderer {
     return pipeline;
   }
 
-  getTexture(key: 'BRDF' | 'Irradiance' | 'Prefiltered') {
+  getTexture(key: 'BRDF' | 'Irradiance' | 'Palette' | 'Prefiltered') {
     // @dani @incomplete
     // Figure out a way to notify the consumer when this textures change
     return this.textures[key];

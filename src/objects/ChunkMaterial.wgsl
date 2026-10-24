@@ -1,36 +1,39 @@
 @group(0) @binding(0) var<uniform> camera: Camera;
 @group(0) @binding(1) var<uniform> transform: Transform;
 @group(1) @binding(0) var blockTexture: texture_2d_array<f32>;
-@group(1) @binding(1) var textureSampler: sampler;
-@group(1) @binding(2) var brdfTexture: texture_2d<f32>;
-@group(1) @binding(3) var irradianceTexture: texture_cube<f32>;
-@group(1) @binding(4) var prefilteredTexture: texture_cube<f32>;
-@group(1) @binding(5) var lightingSampler: sampler;
+@group(1) @binding(1) var blockPalette: texture_2d_array<f32>;
+@group(1) @binding(2) var textureSampler: sampler;
+@group(1) @binding(3) var brdfTexture: texture_2d<f32>;
+@group(1) @binding(4) var irradianceTexture: texture_cube<f32>;
+@group(1) @binding(5) var prefilteredTexture: texture_cube<f32>;
+@group(1) @binding(6) var lightingSampler: sampler;
 
 struct VertexInput {
   @location(0) position: vec3f,
   @location(1) normal: vec3f,
   @location(2) uv: vec2f,
   @location(3) light: f32,
-  @location(4) texture: f32,
+  @location(4) texture: u32,
   @location(5) instance: vec3f,
 }
 
 struct VertexOutput {
   @builtin(position) position: vec4f,
-  @location(0) light: f32,
-  @location(1) texture: f32,
-  @location(2) normal: vec3f,
-  @location(3) uv: vec2f,
-  @location(4) worldPos: vec3f,
+  @location(0) @interpolate(flat) color: u32,
+  @location(1) @interpolate(flat) texture: u32,
+  @location(2) uv: vec2f,
+  @location(3) normal: vec3f,
+  @location(4) light: f32,
+  @location(5) worldPos: vec3f,
 }
 
 struct FragmentInput {
-  @location(0) light: f32,
-  @location(1) texture: f32,
-  @location(2) normal: vec3f,
-  @location(3) uv: vec2f,
-  @location(4) worldPos: vec3f,
+  @location(0) @interpolate(flat) color: u32,
+  @location(1) @interpolate(flat) texture: u32,
+  @location(2) uv: vec2f,
+  @location(3) normal: vec3f,
+  @location(4) light: f32,
+  @location(5) worldPos: vec3f,
 }
 
 struct FragmentOutput {
@@ -44,7 +47,8 @@ fn vert_main(vertex: VertexInput) -> VertexOutput {
   output.worldPos = (transform.matrix * vec4f(vertex.position, 1.0)).xyz + vertex.instance;
   output.position = camera.projection * camera.view * vec4f(output.worldPos, 1.0);
   output.light = vertex.light;
-  output.texture = vertex.texture;
+  output.color = (vertex.texture >> 16) & 0xFFFF;
+  output.texture = vertex.texture & 0xFFFF;
   output.normal = transform.normal * vertex.normal;
   output.uv = vertex.uv;
   return output;
@@ -54,7 +58,8 @@ fn vert_main(vertex: VertexInput) -> VertexOutput {
 fn frag_main(fragment: FragmentInput) -> FragmentOutput {
   let normal = normalize(fragment.normal);
   let light = getLight(
-    textureSample(blockTexture, textureSampler, fragment.uv, u32(fragment.texture)).rgb,
+    textureSample(blockPalette, textureSampler, fragment.uv, fragment.color).rgb
+    * textureSample(blockTexture, textureSampler, fragment.uv, fragment.texture).rgb,
     0.5,
     0.02,
     normal,

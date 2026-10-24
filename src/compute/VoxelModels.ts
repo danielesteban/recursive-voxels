@@ -133,26 +133,26 @@ export const Models = {
   [BlockModel.block]: blockModel,
   [BlockModel.lightS]: transformModel(
     blockModel,
-    mat4.fromRotationTranslationScale(mat4.create(), rotation, vec3.fromValues(0, 0, -0.4375), vec3.fromValues(0.25, 0.75, 0.125)),
+    mat4.fromRotationTranslationScale(mat4.create(), rotation, vec3.fromValues(0, 0, -0.4375), vec3.fromValues(0.375, 0.75, 0.125)),
   ),
   [BlockModel.lightW]: transformModel(
     blockModel,
-    mat4.fromRotationTranslationScale(mat4.create(), rotation, vec3.fromValues(0.4375, 0, 0), vec3.fromValues(0.125, 0.75, 0.25)),
+    mat4.fromRotationTranslationScale(mat4.create(), rotation, vec3.fromValues(0.4375, 0, 0), vec3.fromValues(0.125, 0.75, 0.375)),
   ),
   [BlockModel.lightE]: transformModel(
     blockModel,
-    mat4.fromRotationTranslationScale(mat4.create(), rotation, vec3.fromValues(-0.4375, 0, 0), vec3.fromValues(0.125, 0.75, 0.25)),
+    mat4.fromRotationTranslationScale(mat4.create(), rotation, vec3.fromValues(-0.4375, 0, 0), vec3.fromValues(0.125, 0.75, 0.375)),
   ),
   [BlockModel.lightN]: transformModel(
     blockModel,
-    mat4.fromRotationTranslationScale(mat4.create(), rotation, vec3.fromValues(0, 0, 0.4375), vec3.fromValues(0.25, 0.75, 0.125)),
+    mat4.fromRotationTranslationScale(mat4.create(), rotation, vec3.fromValues(0, 0, 0.4375), vec3.fromValues(0.375, 0.75, 0.125)),
   ),
   [BlockModel.lightT]: transformModel(
     blockModel,
-    mat4.fromRotationTranslationScale(mat4.create(), rotation, vec3.fromValues(0, -0.4375, 0), vec3.fromValues(0.25, 0.125, 0.75)),
+    mat4.fromRotationTranslationScale(mat4.create(), rotation, vec3.fromValues(0, -0.4375, 0), vec3.fromValues(0.375, 0.125, 0.75)),
   ),
   [BlockModel.lightB]: transformModel(
     blockModel,
-    mat4.fromRotationTranslationScale(mat4.create(), rotation, vec3.fromValues(0, 0.4375, 0), vec3.fromValues(0.25, 0.125, 0.75)),
+    mat4.fromRotationTranslationScale(mat4.create(), rotation, vec3.fromValues(0, 0.4375, 0), vec3.fromValues(0.375, 0.125, 0.75)),
   ),
 };

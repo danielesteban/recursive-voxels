@@ -38,7 +38,7 @@ export class Chunk extends Mesh {
       {
         shaderLocation: 4,
         offset: 36,
-        format: 'float32',
+        format: 'uint32',
       },
     ],
   };
@@ -77,28 +77,26 @@ export class Chunk extends Mesh {
   private static texture?: GPUTexture;
   private static getTexture(renderer: Renderer) {
     if (!Chunk.texture) {
-      const numLayers = 3;
+      const numLayers = 2;
       const size = 16;
       const data = new Uint8Array(numLayers * size * size * 4);
       for (let i = 0, layer = 0; layer < numLayers; layer++) {
         for (let y = 0; y < size; y++) {
           for (let x = 0; x < size; x++, i += 4) {
-            let light: number;
-            if (y === 0 || y === size - 1 || x === 0 || x === size - 1) {
-              light = 255 - Math.floor(Math.random() * 16);
-            } else {
-              light = 255 - Math.floor(Math.random() * 32);
-            }
             switch (layer) {
-              case BlockTexture.blockLight:
-                data.set([light, light, light, 255], i);
-              break;
               case BlockTexture.light:
                 data.set([255, 255, 255, 255], i);
-              break;
-              default:
-                data.set([light * 0.25, light * 0.5, light, 255], i);
-              break;
+                break;
+              default: {
+                let light: number;
+                if (y === 0 || y === size - 1 || x === 0 || x === size - 1) {
+                  light = 255 - Math.floor(Math.random() * 16);
+                } else {
+                  light = 255 - Math.floor(Math.random() * 32);
+                }
+                data.set([light, light, light, 255], i);
+                break;
+              }
             }
           }
         }
@@ -158,22 +156,26 @@ export class Chunk extends Mesh {
           },
           {
             binding: 1,
-            resource: samplers.texture,
+            resource: renderer.getTexture('Palette').createView({ dimension: '2d-array' }),
           },
           {
             binding: 2,
-            resource: renderer.getTexture('BRDF').createView(),
+            resource: samplers.texture,
           },
           {
             binding: 3,
-            resource: renderer.getTexture('Irradiance').createView({ dimension: 'cube' }),
+            resource: renderer.getTexture('BRDF').createView(),
           },
           {
             binding: 4,
-            resource: renderer.getTexture('Prefiltered').createView({ dimension: 'cube' }),
+            resource: renderer.getTexture('Irradiance').createView({ dimension: 'cube' }),
           },
           {
             binding: 5,
+            resource: renderer.getTexture('Prefiltered').createView({ dimension: 'cube' }),
+          },
+          {
+            binding: 6,
             resource: samplers.lighting,
           },
         ],

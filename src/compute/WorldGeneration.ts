@@ -59,7 +59,7 @@ export const GeneratorEscher = (((BlockType: typeof BlockTypeType, size: vec3) =
         && Math.abs(z) <= 1
       )
     ) {
-      return BlockType.block;
+      return BlockType.block + 46;
     }
     return BlockType.air;
   };

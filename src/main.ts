@@ -1,10 +1,12 @@
 import './main.css';
-import { vec3 } from 'gl-matrix';
+import { mat3, mat4, quat, vec3 } from 'gl-matrix';
 import { HDR } from 'compute/HDR';
 import { Input } from 'compute/Input';
 import { Raycaster } from 'compute/Raycaster';
 import { BlockType } from 'compute/WorldConstants';
+import { Palette } from 'objects/Palette';
 import { World } from 'objects/World';
+import { Camera } from 'render/Camera';
 import { Renderer } from 'render/Renderer';
 import Environment from 'textures/citrus_orchard_road_puresky_2k.jpg';
 import { FPS } from 'ui/FPS';
@@ -21,14 +23,18 @@ Promise.all([
 
   let clock: number;
   let frame: number;
-
+  
   const fps = new FPS();
   const input = new Input(renderer);
   const raycaster = new Raycaster();
+  const palette = new Palette(renderer);
   const world = new World(renderer);
 
   renderer
-    .addObject(world);
+    .addObject(world)
+    .addObject(palette);
+
+  let color = 46;
 
   const normalToLightBrush = [
     { normal: vec3.fromValues(0, 0, 1), brush: BlockType.lightS },
@@ -50,22 +56,30 @@ Promise.all([
     input.update(delta, world.getPlayer(), world.getSize());
     world.setPlayerMovement(input.getMovement());
 
-    const pointer = input.getPointer();
-    if (pointer.primaryDown || pointer.secondaryDown) {
+    const buttons = input.getButtons();
+    if (buttons.primaryDown || buttons.secondaryDown) {
       raycaster
         .setFromCamera(renderer.getCamera())
-        .intersect(world.getChunks())
+        .intersect([
+          ...world.getChunks(),
+          ...(palette.visible ? [palette] : []),
+        ])
         .then((hit) => {
           if (!hit) {
             return;
           }
-          vec3.scaleAndAdd(hit.position, hit.position, hit.normal, pointer.primaryDown ? 0.9 : -0.1);
+          if (hit.obj instanceof Palette) {
+            color = Math.floor((1.0 - hit.uv[1]) * 8.0) * 8 + Math.floor(hit.uv[0] * 8.0);
+            palette.visible = false;
+            return;
+          }
+          vec3.scaleAndAdd(hit.position, hit.position, hit.normal, buttons.primaryDown ? 0.9 : -0.1);
           vec3.floor(hit.position, hit.position);
           let brush: BlockType;
-          if (pointer.primaryDown) {
+          if (buttons.primaryDown) {
             switch(input.getTool()) {
               default:
-                brush = BlockType.block;
+                brush = BlockType.block + color;
                 break;
               case 1:
                 brush = BlockType.light;
@@ -86,11 +100,11 @@ Promise.all([
             hit.position,
             1,
             (Math.random() - 0.5) * 1000,
-            { type: pointer.primaryDown ? 'lowpass': 'highpass', frequency: 1000 + Math.random() * 1000 }
+            { type: buttons.primaryDown ? 'lowpass': 'highpass', frequency: 1000 + Math.random() * 1000 }
           );
         });
     }
-    if (pointer.tertiaryDown) {
+    if (buttons.tertiaryDown) {
       const { position, direction } = renderer.getCamera();
       const origin = vec3.scaleAndAdd(vec3.create(), position, direction, 0.5);
       world.shootBall(
@@ -103,6 +117,16 @@ Promise.all([
         1,
         (Math.random() - 0.5) * 500,
       );
+    }
+    if (buttons.paletteDown) {
+      const { position, direction } = renderer.getCamera();
+      palette.position = vec3.scaleAndAdd(vec3.create(), position, direction, 1.5);
+      const transform = mat4.targetTo(mat4.create(), position, palette.position, Camera.up);
+      palette.rotation = quat.fromMat3(quat.create(), mat3.fromMat4(mat3.create(), transform));
+      palette.visible = true;
+    }
+    if (buttons.paletteUp) {
+      palette.visible = false;
     }
 
     renderer

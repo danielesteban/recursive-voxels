@@ -29,7 +29,7 @@ export class Input {
     y: [],
     z: [],
   };
-  private readonly pointer = {
+  private readonly buttons = {
     primary: false,
     primaryDown: false,
     primaryUp: false,
@@ -39,6 +39,9 @@ export class Input {
     tertiary: false,
     tertiaryDown: false,
     tertiaryUp: false,
+    palette: false,
+    paletteDown: false,
+    paletteUp: false,
   };
   private tool = 0;
 
@@ -64,7 +67,7 @@ export class Input {
   }
 
   private onkeydown(e: KeyboardEvent) {
-    const { isLocked, movement } = this;
+    const { buttons, isLocked, movement } = this;
     if (!isLocked || e.repeat) return;
     switch (e.key.toUpperCase()) {
       case 'W':
@@ -94,11 +97,14 @@ export class Input {
       case '3':
         this.tool = 2;
         break;
+      case 'P':
+        buttons.palette = buttons.paletteDown = true;
+        break;
     }
   }
 
   private onkeyup(e: KeyboardEvent) {
-    const { movement } = this;
+    const { buttons, movement } = this;
     if (e.repeat) return;
     switch (e.key.toUpperCase()) {
       case 'W': {
@@ -131,35 +137,44 @@ export class Input {
         if (i !== -1) movement.y.splice(i, 1);
         break;
       }
+      case 'P':
+        buttons.palette = false;
+        buttons.paletteUp = true;
+        break;
     }
   }
 
   private onpointerlock() {
-    const { canvas, movement, pointer } = this;
+    const { buttons, canvas, movement } = this;
     this.isLocked = document.pointerLockElement === canvas;
     document.body.classList[this.isLocked ? 'add' : 'remove']('pointerlock');
     if (!this.isLocked) {
+      if (buttons.primary) buttons.primaryUp = true;
+      buttons.primary = buttons.primaryDown = false;
+      if (buttons.secondary) buttons.secondaryUp = true;
+      buttons.secondary = buttons.secondaryDown = false;
+      if (buttons.tertiary) buttons.tertiaryUp = true;
+      buttons.tertiary = buttons.tertiaryDown = false;
+      if (buttons.palette) buttons.paletteUp = true;
+      buttons.palette = buttons.paletteDown = false;
       movement.x.length = movement.y.length = movement.z.length = 0;
-      pointer.primary = pointer.primaryDown = pointer.primaryUp = false;
-      pointer.secondary = pointer.secondaryDown = pointer.secondaryUp = false;
-      pointer.tertiary = pointer.tertiaryDown = pointer.tertiaryUp = false;
     }
   }
 
   private onpointerdown(e: PointerEvent) {
-    const { canvas, isLocked, pointer } = this;
+    const { buttons, canvas, isLocked } = this;
     if (!isLocked) {
       canvas.requestPointerLock();
     } else {
       switch (e.button) {
         case 0:
-          pointer.primary = pointer.primaryDown = true;
+          buttons.primary = buttons.primaryDown = true;
           break;
         case 1:
-          pointer.tertiary = pointer.tertiaryDown = true;
+          buttons.tertiary = buttons.tertiaryDown = true;
           break;
         case 2:
-          pointer.secondary = pointer.secondaryDown = true;
+          buttons.secondary = buttons.secondaryDown = true;
           break;
       }
     }
@@ -177,19 +192,19 @@ export class Input {
   }
 
   private onpointerup(e: PointerEvent) {
-    const { pointer } = this;
+    const { buttons } = this;
     switch (e.button) {
       case 0:
-        pointer.primary = false;
-        pointer.primaryUp = true;
+        buttons.primary = false;
+        buttons.primaryUp = true;
         break;
       case 1:
-        pointer.tertiary = false;
-        pointer.tertiaryUp = true;
+        buttons.tertiary = false;
+        buttons.tertiaryUp = true;
         break;
       case 2:
-        pointer.secondary = false;
-        pointer.secondaryUp = true;
+        buttons.secondary = false;
+        buttons.secondaryUp = true;
         break;
     }
   }
@@ -245,12 +260,13 @@ export class Input {
     return move;
   }
 
-  getPointer() {
-    const { pointer } = this;
-    const data = { ...pointer };
-    pointer.primaryDown = pointer.primaryUp = false;
-    pointer.secondaryDown = pointer.secondaryUp = false;
-    pointer.tertiaryDown = pointer.tertiaryUp = false;
+  getButtons() {
+    const { buttons } = this;
+    const data = { ...buttons };
+    buttons.primaryDown = buttons.primaryUp = false;
+    buttons.secondaryDown = buttons.secondaryUp = false;
+    buttons.tertiaryDown = buttons.tertiaryUp = false;
+    buttons.paletteDown = buttons.paletteUp = false;
     return data;
   }
 

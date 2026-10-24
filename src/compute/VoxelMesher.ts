@@ -1,6 +1,6 @@
 import { vec2, vec3 } from 'gl-matrix';
 import type { VoxelVolume } from 'compute/VoxelVolume';
-import { BlockModel, BlockType, ChunkSize, getModel, getTexture, isOpaque, MaxLight } from 'compute/WorldConstants';
+import { BlockModel, BlockType, ChunkSize, getModel, getTexture, isLight, isOpaque, MaxLight } from 'compute/WorldConstants';
 import { type Face, Models } from 'compute/VoxelModels';
 
 const maxVoxelCount = (ChunkSize ** 3) / 2;
@@ -84,6 +84,7 @@ const getLighting = (
   return lighting;
 };
 
+const texture = new Uint32Array(1);
 const pushFace = (
   blockType: BlockType,
   face: Face,
@@ -97,6 +98,10 @@ const pushFace = (
   for (let i = 0; i < 6; i++) {
     index[counts.indexOffset + i] = counts.vertices + (flip ? face.flipIndex[i] : face.index[i]);
   }
+  texture[0] = (
+    ((blockType < BlockType.block ? 9 : (blockType - BlockType.block)) & 0xFFFF) << 16
+    | (getTexture(blockType) & 0xFFFF)
+  );
   for (let i = 0; i < 4; i++) {
     vertices.set([
       voxel[0] + 0.5 + face.position[i][0],
@@ -108,7 +113,7 @@ const pushFace = (
       face.uv[i][0],
       face.uv[i][1],
       lighting.light[i] * lighting.ao[i],
-      getTexture(blockType),
+      new Float32Array(texture.buffer, 0, 1)[0],
     ], counts.vertexOffset + i * vertexSize);
   }
   counts.faces++;

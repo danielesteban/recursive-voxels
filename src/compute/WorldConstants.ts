@@ -10,7 +10,6 @@ export enum BlockModel {
 
 export enum BlockTexture {
   block,
-  blockLight,
   light,
 }
 
@@ -23,7 +22,7 @@ export enum BlockType {
   lightN,
   lightT,
   lightB,
-  block,
+  block = 128,
 }
 
 export const ChunkSize = 16;
@@ -50,8 +49,6 @@ export const getModel = (value: BlockType) => {
 
 export const getTexture = (value: BlockType) => {
   switch (value) {
-    case BlockType.light:
-      return BlockTexture.blockLight;
     case BlockType.lightS:
     case BlockType.lightW:
     case BlockType.lightE:

@@ -1,4 +1,4 @@
-import { vec3 } from 'gl-matrix';
+import { vec2, vec3 } from 'gl-matrix';
 import { Box } from 'math/Box';
 import { Sphere } from 'math/Sphere';
 import type { Renderer } from 'render/Renderer';
@@ -100,9 +100,10 @@ export class Geometry {
     return this.indexCount;
   }
 
-  private static readonly aux3: { position: [vec3, vec3, vec3], normal: [vec3, vec3, vec3] } = {
+  private static readonly aux3: { position: [vec3, vec3, vec3], normal: [vec3, vec3, vec3], uv: [vec2, vec2, vec2] } = {
     position: [vec3.create(), vec3.create(), vec3.create()],
     normal: [vec3.create(), vec3.create(), vec3.create()],
+    uv: [vec2.create(), vec2.create(), vec2.create()],
   };
   getTriangle(index: number) {
     const { buffers, vertexLayout } = this;
@@ -121,6 +122,11 @@ export class Geometry {
         buffers.vertices[offset + 3],
         buffers.vertices[offset + 4],
         buffers.vertices[offset + 5]
+      );
+      vec2.set(
+        triangle.uv[t],
+        buffers.vertices[offset + 6],
+        buffers.vertices[offset + 7],
       );
     }
     return triangle;

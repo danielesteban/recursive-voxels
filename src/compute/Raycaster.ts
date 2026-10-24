@@ -1,4 +1,4 @@
-import { type mat4, type vec2, vec3 } from 'gl-matrix';
+import { type mat4, vec2, vec3 } from 'gl-matrix';
 import type { Sphere } from 'math/Sphere';
 import type { Camera } from 'render/Camera';
 import type { Geometry } from 'render/Geometry';
@@ -7,6 +7,7 @@ export type Intersection = {
   distance: number;
   position: vec3;
   normal: vec3;
+  uv: vec2;
   obj: any;
 };
 
@@ -118,6 +119,7 @@ export class Ray {
       vec3.transformMat4(b, triangle.position[1], transform);
       vec3.transformMat4(c, triangle.position[2], transform);
       const normal = vec3.create();
+      const uv = vec2.create();
       const barycoord = Ray.getBarycoord(position, a, b, c);
       if (barycoord) {
         vec3.scaleAndAdd(normal, normal, triangle.normal[0], barycoord[0]);
@@ -126,11 +128,15 @@ export class Ray {
         if (vec3.dot(normal, direction) > 0) {
           vec3.scale(normal, normal, -1);
         }
+        vec2.scaleAndAdd(uv, uv, triangle.uv[0], barycoord[0]);
+        vec2.scaleAndAdd(uv, uv, triangle.uv[1], barycoord[1]);
+        vec2.scaleAndAdd(uv, uv, triangle.uv[2], barycoord[2]);
       }
       return {
         distance: intersection.distance,
         position,
         normal,
+        uv,
       };
     }
     return null;
