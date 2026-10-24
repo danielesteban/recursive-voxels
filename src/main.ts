@@ -34,8 +34,7 @@ Promise.all([
     .addObject(world)
     .addObject(palette);
 
-  let color = 46;
-
+  let brushColor = 46;
   const normalToLightBrush = [
     { normal: vec3.fromValues(0, 0, 1), brush: BlockType.lightS },
     { normal: vec3.fromValues(-1, 0, 0), brush: BlockType.lightW },
@@ -69,7 +68,7 @@ Promise.all([
             return;
           }
           if (hit.obj instanceof Palette) {
-            color = Math.floor((1.0 - hit.uv[1]) * 8.0) * 8 + Math.floor(hit.uv[0] * 8.0);
+            brushColor = Math.floor((1.0 - hit.uv[1]) * 8.0) * 8 + Math.floor(hit.uv[0] * 8.0);
             palette.visible = false;
             return;
           }
@@ -79,7 +78,7 @@ Promise.all([
           if (buttons.primaryDown) {
             switch(input.getTool()) {
               default:
-                brush = BlockType.block + color;
+                brush = BlockType.block + brushColor;
                 break;
               case 1:
                 brush = BlockType.light;

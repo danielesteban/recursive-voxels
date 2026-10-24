@@ -296,18 +296,18 @@ export class Input {
       this.updateDirection();
     }
 
-    if (vec3.distance(camera.position, player) > 0.001) {
-      for (let i = 0, z = -1; z <= 1; z++) {
-        for (let y = -1; y <= 1; y++) {
-          for (let x = -1; x <= 1; x++, i++) {
-            const target = targets[i];
-            vec3.set(target, x, y, z);
-            vec3.multiply(target, target, size);
-            vec3.add(target, target, camera.position);
-          }
+    for (let i = 0, z = -1; z <= 1; z++) {
+      for (let y = -1; y <= 1; y++) {
+        for (let x = -1; x <= 1; x++, i++) {
+          const target = targets[i];
+          vec3.set(target, x, y, z);
+          vec3.multiply(target, target, size);
+          vec3.add(target, target, camera.position);
         }
       }
-      targets.sort((a, b) => vec3.sqrDist(a, player) - vec3.sqrDist(b, player));
+    }
+    targets.sort((a, b) => vec3.sqrDist(a, player) - vec3.sqrDist(b, player));
+    if (vec3.distance(targets[0], player) > 0.001) {
       camera.position = vec3.lerp(
         vec3.create(),
         targets[0],
