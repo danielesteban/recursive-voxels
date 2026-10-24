@@ -172,6 +172,63 @@ Promise.all([
     } satisfies Operation);
   };
 
+  const sfxPosition = vec3.create();
+  const targets = Array.from({ length: 3 * 3 * 3 }, () => vec3.create());
+  const playContactSFX = (body: ReturnType<Physics['addBody']>, force: number) => {
+    const position = body.GetPosition();
+    vec3.set(sfxPosition, position.GetX(), position.GetY(), position.GetZ());
+    // @dani @incomplete
+    // this should prolly be done on the main thread
+    // since the audio listener could be on a different position
+    for (let i = 0, z = -1; z <= 1; z++) {
+      for (let y = -1; y <= 1; y++) {
+        for (let x = -1; x <= 1; x++, i++) {
+          const target = targets[i];
+          vec3.set(target, x, y, z);
+          vec3.multiply(target, target, VolumeSize);
+          vec3.add(target, target, sfxPosition);
+        }
+      }
+    }
+    const playerPosition = player.body.GetPosition();
+    vec3.set(aux, playerPosition.GetX(), playerPosition.GetY(), playerPosition.GetZ());
+    targets.sort((a, b) => vec3.sqrDist(a, aux) - vec3.sqrDist(b, aux));
+    postMessage({
+      op: 'sfx',
+      sound: 'shot',
+      position: targets[0],
+      volume: (1 - Math.sqrt(1 - Math.min(force / 10000, 1))) * 0.1,
+      detune: Math.random() * 2000,
+    } satisfies Operation);
+  };
+
+  const lastContactSFX = new Map<number, number>();
+  physics.setOnContact((body1, body2, impulses) => {
+    const time = performance.now() / 1000;
+    let force = 0;
+    for (let i = 0, l = impulses.size(); i < l; i++) {
+      force += impulses.at(i);
+    }
+    if (
+      force < 1000
+      || Math.max(
+        lastContactSFX.get(body1.GetID().GetIndexAndSequenceNumber()) || 0,
+        lastContactSFX.get(body2.GetID().GetIndexAndSequenceNumber()) || 0
+      ) >= time - 0.2
+    ) {
+      return;
+    }
+
+    if (body1.IsDynamic() && body1 !== player.body) {
+      playContactSFX(body1, force);
+    } else if (body2.IsDynamic() && body2 !== player.body) {
+      playContactSFX(body2, force);
+    }
+
+    lastContactSFX.set(body1.GetID().GetIndexAndSequenceNumber(), time);
+    lastContactSFX.set(body2.GetID().GetIndexAndSequenceNumber(), time);
+  });
+
   for (let z = 0; z < VolumeChunks[2]; z++) {
     for (let y = 0; y < VolumeChunks[1]; y++) {
       for (let x = 0; x < VolumeChunks[0]; x++) {
@@ -185,6 +242,7 @@ Promise.all([
     switch (data.op) {
       case 'ball': {
         const { position, impulse } = data;
+        volume.wrap(position);
         let body = ballBodies.get(ballId);
         if (body) {
           physics.setBodyPosition(body, position, true);

@@ -31,7 +31,13 @@ export class Physics {
   private readonly bodyInterface: initJolt.BodyInterface;
   private readonly contactListener: initJolt.ContactListenerJS;
   private readonly physicsSystem: initJolt.PhysicsSystem;
-  private onContact?: (body1: initJolt.Body, body2: initJolt.Body, manifold: initJolt.ContactManifold, settings: initJolt.ContactSettings) => void;
+  private onContact?: (
+    body1: initJolt.Body,
+    body2: initJolt.Body,
+    impluses: initJolt.ContactImpulses,
+    manifold: initJolt.ContactManifold,
+    settings: initJolt.ContactSettings
+  ) => void;
 
   constructor(Jolt: typeof initJolt) {
     this.Jolt = Jolt;
@@ -70,12 +76,20 @@ export class Physics {
 
   private onContactAdded(body1P: number, body2P: number, manifoldP: number, settingsP: number) {
     const { Jolt, onContact } = this;
+    const body1 = Jolt.wrapPointer(body1P, Jolt.Body);
+    const body2 = Jolt.wrapPointer(body2P, Jolt.Body);
+    const manifold = Jolt.wrapPointer(manifoldP, Jolt.ContactManifold);
+    const settings = Jolt.wrapPointer(settingsP, Jolt.ContactSettings);
+    const collisionEstimate = new Jolt.CollisionEstimationResult();
+    Jolt.JoltInterface.prototype.sEstimateCollisionResponse(body1, body2, manifold, collisionEstimate, settings);
     onContact?.(
       Jolt.wrapPointer(body1P, Jolt.Body),
       Jolt.wrapPointer(body2P, Jolt.Body),
+      collisionEstimate.mContactImpulse,
       Jolt.wrapPointer(manifoldP, Jolt.ContactManifold),
-      Jolt.wrapPointer(settingsP, Jolt.ContactSettings)
+      Jolt.wrapPointer(settingsP, Jolt.ContactSettings),
     );
+    Jolt.destroy(collisionEstimate);
   }
 
   private onContactValidate(_body1: number, _body2: number, _baseOffset: number, _collideShapeResult: number) {
