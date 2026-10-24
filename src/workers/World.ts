@@ -177,9 +177,6 @@ Promise.all([
   const playContactSFX = (body: ReturnType<Physics['addBody']>, force: number) => {
     const position = body.GetPosition();
     vec3.set(sfxPosition, position.GetX(), position.GetY(), position.GetZ());
-    // @dani @incomplete
-    // this should prolly be done on the main thread
-    // since the audio listener could be on a different position
     for (let i = 0, z = -1; z <= 1; z++) {
       for (let y = -1; y <= 1; y++) {
         for (let x = -1; x <= 1; x++, i++) {
@@ -306,8 +303,9 @@ Promise.all([
     const delta = Math.min(time - lastTick, 1 / 30);
     lastTick = time;
 
-    vec3.scale(player.velocity, player.velocity, 0.75);
-    vec3.scaleAndAdd(player.velocity, player.velocity, player.movement, 60 * delta * 0.25);
+    const damp = Math.exp(-20 * delta);
+    vec3.scale(player.velocity, player.velocity, damp);
+    vec3.scaleAndAdd(player.velocity, player.velocity, player.movement, 60 * delta * (1 - damp));
     physics.setBodyLinearVelocity(player.body, player.velocity);
 
     physics.step(delta);
