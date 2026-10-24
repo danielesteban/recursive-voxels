@@ -23,7 +23,7 @@ export class Input {
   private static minSpeed = Math.log(1);
   private static maxSpeed = Math.log(64);
   private static speedRange = Input.maxSpeed - Input.minSpeed;
-  private speed = 16;
+  private speed = 8;
   private readonly movement: { x: number[]; y: number[]; z: number[] } = {
     x: [],
     y: [],

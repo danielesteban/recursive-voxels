@@ -94,12 +94,13 @@ Promise.all([
     body: physics.addBody({
       allowRotation: false,
       gravityFactor: 0,
-      linearDamping: 10,
       layer: PhysicsLayer.dynamic,
+      mass: 1000,
       position: vec3.create(),
       shape: physics.getShape({ type: 'sphere', radius: 0.5 }),
     }),
     movement: vec3.create(),
+    velocity: vec3.create(),
   };
 
   const updateChunk = (position: vec3, updatePhysics: boolean) => {
@@ -247,9 +248,10 @@ Promise.all([
     const delta = Math.min(time - lastTick, 1 / 30);
     lastTick = time;
 
-    if (player.movement[0] || player.movement[1] || player.movement[2]) {
-      physics.addBodyImpulse(player.body, vec3.scale(aux, player.movement, 2000 * delta));
-    }
+    vec3.scale(player.velocity, player.velocity, 0.75);
+    vec3.scaleAndAdd(player.velocity, player.velocity, player.movement, 60 * delta * 0.25);
+    physics.setBodyLinearVelocity(player.body, player.velocity);
+
     physics.step(delta);
 
     {

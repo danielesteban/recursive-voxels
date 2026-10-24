@@ -122,7 +122,7 @@ export class Physics {
     allowRotation = true,
     gravityFactor = 1,
     layer,
-    linearDamping,
+    mass,
     position,
     shape,
   }: {
@@ -130,7 +130,7 @@ export class Physics {
     allowSleeping?: boolean;
     gravityFactor?: number;
     layer: PhysicsLayer;
-    linearDamping?: number;
+    mass?: number;
     position: vec3;
     shape: initJolt.Shape;
   }) {
@@ -153,8 +153,9 @@ export class Physics {
     }
     creationSettings.mAllowSleeping = allowSleeping;
     creationSettings.mGravityFactor = gravityFactor;
-    if (linearDamping) {
-      creationSettings.mLinearDamping = linearDamping;
+    if (mass !== undefined) {
+      creationSettings.mOverrideMassProperties = Jolt.EOverrideMassProperties_CalculateInertia;
+      creationSettings.mMassPropertiesOverride.mMass = mass;
     }
     const body = bodyInterface.CreateBody(creationSettings);
     Jolt.destroy(creationSettings);
@@ -183,6 +184,13 @@ export class Physics {
     if (resetVelocity) {
       bodyInterface.SetLinearAndAngularVelocity(body.GetID(), Jolt.Vec3.prototype.sZero(), Jolt.Vec3.prototype.sZero());
     }
+  }
+
+  setBodyLinearVelocity(body: initJolt.Body, velocity: vec3) {
+    const { bodyInterface, Jolt } = this;
+    const vel = new Jolt.Vec3(velocity[0], velocity[1], velocity[2]);
+    bodyInterface.SetLinearVelocity(body.GetID(), vel);
+    Jolt.destroy(vel);
   }
 
   setOnContact(callback: typeof this.onContact) {
