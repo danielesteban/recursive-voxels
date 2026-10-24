@@ -97,7 +97,7 @@ export class Input {
       case '3':
         this.tool = 2;
         break;
-      case 'P':
+      case 'E':
         buttons.palette = buttons.paletteDown = true;
         break;
     }
@@ -137,7 +137,7 @@ export class Input {
         if (i !== -1) movement.y.splice(i, 1);
         break;
       }
-      case 'P':
+      case 'E':
         buttons.palette = false;
         buttons.paletteUp = true;
         break;
