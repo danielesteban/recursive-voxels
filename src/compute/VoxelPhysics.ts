@@ -52,6 +52,9 @@ export const VoxelPhysics = (
         }
         vec3.set(size, 0, 0, 0);
 
+        // @dani @incomplete
+        // Handle lights special case
+
         for (let i = z + 1; i <= ChunkSize; i++) {
           vec3.set(voxel, x, y, i);
           vec3.add(position, origin, voxel);

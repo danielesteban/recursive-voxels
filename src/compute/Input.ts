@@ -91,6 +91,9 @@ export class Input {
       case '2':
         this.tool = 1;
         break;
+      case '3':
+        this.tool = 2;
+        break;
     }
   }
 

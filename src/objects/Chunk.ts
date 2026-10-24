@@ -1,7 +1,7 @@
 import { mat4, vec3 } from 'gl-matrix';
 import type { Intersection, Ray } from 'compute/Raycaster';
 import type { RecursiveInstances } from 'compute/RecursiveInstances';
-import { BlockType, ChunkSize } from 'compute/WorldConstants';
+import { BlockTexture, ChunkSize } from 'compute/WorldConstants';
 import { Sphere } from 'math/Sphere';
 import ChunkMaterialCode from 'objects/ChunkMaterial.wgsl';
 import { CameraGPUStruct } from 'render/Camera';
@@ -77,7 +77,7 @@ export class Chunk extends Mesh {
   private static texture?: GPUTexture;
   private static getTexture(renderer: Renderer) {
     if (!Chunk.texture) {
-      const numLayers = 2;
+      const numLayers = 3;
       const size = 16;
       const data = new Uint8Array(numLayers * size * size * 4);
       for (let i = 0, layer = 0; layer < numLayers; layer++) {
@@ -89,11 +89,14 @@ export class Chunk extends Mesh {
             } else {
               light = 255 - Math.floor(Math.random() * 32);
             }
-            switch (layer + 1) {
-              default:
+            switch (layer) {
+              case BlockTexture.blockLight:
                 data.set([light, light, light, 255], i);
               break;
-              case BlockType.solid:
+              case BlockTexture.light:
+                data.set([255, 255, 255, 255], i);
+              break;
+              default:
                 data.set([light * 0.25, light * 0.5, light, 255], i);
               break;
             }

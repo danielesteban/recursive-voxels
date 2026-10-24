@@ -1,5 +1,5 @@
 import { vec3 } from 'gl-matrix';
-import { BlockType, ChunkSize, MaxLight } from 'compute/WorldConstants';
+import { BlockType, ChunkSize, isLight, isOpaque, MaxLight } from 'compute/WorldConstants';
 
 export class VoxelVolume {
   private static readonly lightNeighbors: vec3[] = [
@@ -41,7 +41,7 @@ export class VoxelVolume {
           const value = generator(x, y, z);
           const voxel = new Uint8Array(data, i, 2);
           voxel[0] = value;
-          if (value === BlockType.light) {
+          if (isLight(value)) {
             voxel[1] = MaxLight;
             lightQueue.push(new Int16Array([x, y, z]));
           }
@@ -67,7 +67,7 @@ export class VoxelVolume {
           if (p % 4 === 2) p++;
           const voxel = new Uint8Array(data, i, 2);
           voxel[0] = value;
-          if (value === BlockType.light) {
+          if (isLight(value)) {
             voxel[1] = MaxLight;
             lightQueue.push(new Int16Array([x, y, z]));
           }
@@ -107,7 +107,7 @@ export class VoxelVolume {
   }
 
   private static readonly aux1 = vec3.create();
-  update(affected: Set<string>, position: vec3, value: number) {
+  update(affected: Set<string>, position: vec3, value: BlockType) {
     const { aux1: neighborPosition, lightNeighbors } = VoxelVolume;
     const voxel = this.sample(position);
     const current = voxel[0];
@@ -117,21 +117,21 @@ export class VoxelVolume {
     voxel[0] = value;
 
     this.expandAffectedChunks(affected, position);
-    if (current === BlockType.light) {
+    if (isLight(current)) {
       const level = voxel[1];
       voxel[1] = 0;
       this.removeLight(affected, [new RemoveLightQueueEntry(position, level)]);
     }
-    if (current === BlockType.air && value !== BlockType.air && voxel[1] !== 0) {
+    if (!isOpaque(current) && isOpaque(value) && voxel[1] !== 0) {
       const level = voxel[1];
       voxel[1] = 0;
       this.removeLight(affected, [new RemoveLightQueueEntry(position, level)]);
     }
-    if (value === BlockType.light) {
+    if (isLight(value)) {
       voxel[1] = MaxLight;
       this.floodLight(affected, [new Int16Array(position)]);
     }
-    if (value === BlockType.air && current !== BlockType.air) {
+    if (!isOpaque(value) && isOpaque(current)) {
       const queue: Int16Array[] = [];
       for (const offset of lightNeighbors) {
         this.wrap(vec3.add(neighborPosition, position, offset));
@@ -170,7 +170,7 @@ export class VoxelVolume {
       for (const offset of lightNeighbors) {
         this.wrap(vec3.add(neighborPosition, entry, offset));
         const neighbor = this.sample(neighborPosition);
-        if (neighbor[0] !== BlockType.air || neighbor[1] >= nextLevel) {
+        if (isOpaque(neighbor[0]) || neighbor[1] >= nextLevel) {
           continue;
         }
         neighbor[1] = nextLevel;
@@ -193,7 +193,7 @@ export class VoxelVolume {
       for (const offset of lightNeighbors) {
         this.wrap(vec3.add(neighborPosition, entry.position, offset));
         const neighbor = this.sample(neighborPosition);
-        if (neighbor[0] !== BlockType.air || neighbor[1] === 0) {
+        if (isOpaque(neighbor[0]) || neighbor[1] === 0) {
           continue;
         }
         if (neighbor[1] < entry.level) {

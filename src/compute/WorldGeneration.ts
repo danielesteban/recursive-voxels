@@ -24,7 +24,7 @@ export const GeneratorDefault = (((BlockType: typeof BlockTypeType, size: vec3) 
         (x ** 2 + y ** 2 + z ** 2) >= radiusSQ
       )
     ) {
-      return BlockType.solid;
+      return BlockType.block;
     }
     return BlockType.air;
   };
@@ -59,7 +59,7 @@ export const GeneratorEscher = (((BlockType: typeof BlockTypeType, size: vec3) =
         && Math.abs(z) <= 1
       )
     ) {
-      return BlockType.solid;
+      return BlockType.block;
     }
     return BlockType.air;
   };

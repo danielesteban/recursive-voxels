@@ -30,6 +30,15 @@ Promise.all([
   renderer
     .addObject(world);
 
+  const normalToLightBrush = [
+    { normal: vec3.fromValues(0, 0, 1), brush: BlockType.lightS },
+    { normal: vec3.fromValues(-1, 0, 0), brush: BlockType.lightW },
+    { normal: vec3.fromValues(1, 0, 0), brush: BlockType.lightE },
+    { normal: vec3.fromValues(0, 0, -1), brush: BlockType.lightN },
+    { normal: vec3.fromValues(0, 1, 0), brush: BlockType.lightT },
+    { normal: vec3.fromValues(0, -1, 0), brush: BlockType.lightB },
+  ];
+
   const onFrame = () => {
     frame = requestAnimationFrame(onFrame);
 
@@ -50,17 +59,23 @@ Promise.all([
           if (!hit) {
             return;
           }
-          vec3.scaleAndAdd(hit.position, hit.position, hit.normal, pointer.primaryDown ? 0.5 : -0.5);
+          vec3.scaleAndAdd(hit.position, hit.position, hit.normal, pointer.primaryDown ? 0.9 : -0.1);
           vec3.floor(hit.position, hit.position);
           let brush: BlockType;
           if (pointer.primaryDown) {
             switch(input.getTool()) {
               default:
-                brush = BlockType.solid;
+                brush = BlockType.block;
                 break;
               case 1:
                 brush = BlockType.light;
                 break;
+              case 2: {
+                const b = normalToLightBrush.find((b) => vec3.equals(b.normal, hit.normal));
+                if (!b) return;
+                brush = b.brush;
+                break;
+              }
             }
           } else {
             brush = BlockType.air;
