@@ -29,6 +29,7 @@ struct FragmentInput {
 struct FragmentOutput {
   @location(0) color: vec4f,
   @location(1) data: vec4f,
+  @location(2) luminance: f32,
 }
 
 @vertex
@@ -56,5 +57,6 @@ fn frag_main(fragment: FragmentInput) -> FragmentOutput {
   var output: FragmentOutput;
   output.color = vec4f(light * alpha, alpha);
   output.data = vec4f(normal, depth);
+  output.luminance = 0.0;
   return output;
 }

@@ -1,6 +1,7 @@
 import PostprocessingBlurCode from 'render/PostprocessingBlur.wgsl';
 import PostprocessingCompositeCode from 'render/PostprocessingComposite.wgsl';
 import PostprocessingEdgeCode from 'render/PostprocessingEdge.wgsl';
+import PostprocessingLuminanceCode from 'render/PostprocessingLuminance.wgsl';
 import PostprocessingVertexCode from 'render/PostprocessingVertex.wgsl';
 import type { Renderer } from 'render/Renderer';
 
@@ -15,22 +16,25 @@ export class Postprocessing {
     blur: GPURenderPipeline;
     composite: GPURenderPipeline;
     edge: GPURenderPipeline;
+    luminance: GPURenderPipeline;
   };
   private readonly samplers: {
     texture: GPUSampler;
   };
   private readonly textures: {
-    blurInput: GPUTexture;
-    blurOutput: GPUTexture;
+    blurA: GPUTexture;
+    blurB: GPUTexture;
     edgeOutput: GPUTexture;
     inputColor: GPUTexture;
     inputData: GPUTexture;
+    inputLuminance: GPUTexture;
   } = {
-    blurInput: null!,
-    blurOutput: null!,
+    blurA: null!,
+    blurB: null!,
     edgeOutput: null!,
     inputColor: null!,
     inputData: null!,
+    inputLuminance: null!,
   };
   private readonly uniforms: {
     blurDirectionH: GPUBuffer;
@@ -102,6 +106,25 @@ export class Postprocessing {
           },
         });
       }),
+      luminance: renderer.getRenderPipeline('PostprocessingLuminance', () => {
+        const module = device.createShaderModule({
+          code: PostprocessingLuminanceCode,
+        });
+        return device.createRenderPipeline({
+          label: 'PostprocessingLuminance',
+          layout: 'auto',
+          vertex: {
+            module: vertex,
+          },
+          fragment: {
+            module,
+            targets: [{ format: renderer.getDataFormat() }],
+          },
+          primitive: {
+            topology: 'triangle-list',
+          },
+        });
+      }),
     };
     this.samplers = {
       texture: renderer.getDevice().createSampler({
@@ -136,6 +159,7 @@ export class Postprocessing {
     return {
       color: textures.inputColor,
       data: textures.inputData,
+      luminance: textures.inputLuminance,
     };
   }
 
@@ -148,11 +172,82 @@ export class Postprocessing {
       }
       textures[texture as (keyof typeof textures)] = device.createTexture({
         size: [width * scale, height * scale],
-        format: renderer.getDataFormat(),
+        format: texture === 'inputLuminance' ? renderer.getLuminanceFormat() : renderer.getDataFormat(),
         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
       });
     }
     this.passes = [
+      {
+        bindings: device.createBindGroup({
+          layout: pipelines.luminance.getBindGroupLayout(0),
+          entries: [
+            {
+              binding: 0,
+              resource: textures.inputColor.createView(),
+            },
+            {
+              binding: 1,
+              resource: textures.inputLuminance.createView(),
+            },
+            {
+              binding: 2,
+              resource: samplers.texture,
+            },
+          ],
+        }),
+        pipeline: pipelines.luminance,
+        texture: textures.blurA,
+      },
+      {
+        bindings: device.createBindGroup({
+          layout: pipelines.blur.getBindGroupLayout(0),
+          entries: [
+            {
+              binding: 0,
+              resource: textures.blurA.createView(),
+            },
+            {
+              binding: 1,
+              resource: samplers.texture,
+            },
+            {
+              binding: 2,
+              resource: uniforms.blurDirectionH,
+            },
+            {
+              binding: 3,
+              resource: uniforms.resolution,
+            },
+          ],
+        }),
+        pipeline: pipelines.blur,
+        texture: textures.blurB,
+      },
+      {
+        bindings: device.createBindGroup({
+          layout: pipelines.blur.getBindGroupLayout(0),
+          entries: [
+            {
+              binding: 0,
+              resource: textures.blurB.createView(),
+            },
+            {
+              binding: 1,
+              resource: samplers.texture,
+            },
+            {
+              binding: 2,
+              resource: uniforms.blurDirectionV,
+            },
+            {
+              binding: 3,
+              resource: uniforms.resolution,
+            },
+          ],
+        }),
+        pipeline: pipelines.blur,
+        texture: textures.blurA,
+      },
       {
         bindings: device.createBindGroup({
           layout: pipelines.edge.getBindGroupLayout(0),
@@ -163,62 +258,24 @@ export class Postprocessing {
             },
             {
               binding: 1,
-              resource: textures.inputData.createView(),
+              resource: textures.blurA.createView(),
             },
             {
               binding: 2,
-              resource: samplers.texture,
+              resource: textures.inputData.createView(),
             },
             {
               binding: 3,
+              resource: samplers.texture,
+            },
+            {
+              binding: 4,
               resource: uniforms.resolution,
             },
           ],
         }),
         pipeline: pipelines.edge,
         texture: textures.edgeOutput.createView(),
-      },
-      {
-        bindings: device.createBindGroup({
-          layout: pipelines.blur.getBindGroupLayout(0),
-          entries: [
-            {
-              binding: 0,
-              resource: textures.edgeOutput.createView(),
-            },
-            {
-              binding: 1,
-              resource: samplers.texture,
-            },
-            {
-              binding: 2,
-              resource: uniforms.blurDirectionH,
-            },
-          ],
-        }),
-        pipeline: pipelines.blur,
-        texture: textures.blurInput,
-      },
-      {
-        bindings: device.createBindGroup({
-          layout: pipelines.blur.getBindGroupLayout(0),
-          entries: [
-            {
-              binding: 0,
-              resource: textures.blurInput.createView(),
-            },
-            {
-              binding: 1,
-              resource: samplers.texture,
-            },
-            {
-              binding: 2,
-              resource: uniforms.blurDirectionV,
-            },
-          ],
-        }),
-        pipeline: pipelines.blur,
-        texture: textures.blurOutput,
       },
       {
         bindings: device.createBindGroup({
@@ -230,14 +287,10 @@ export class Postprocessing {
             },
             {
               binding: 1,
-              resource: textures.blurOutput.createView(),
-            },
-            {
-              binding: 2,
               resource: samplers.texture,
             },
             {
-              binding: 3,
+              binding: 2,
               resource: uniforms.resolution,
             },
           ],

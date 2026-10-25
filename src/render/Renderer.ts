@@ -32,11 +32,12 @@ export class Renderer {
   private readonly camera: Camera;
   private readonly canvas: HTMLCanvasElement;
   private readonly colorFormat: GPUTextureFormat;
-  private readonly dataFormat: GPUTextureFormat;
+  private readonly dataFormat: GPUTextureFormat = 'rgba16float';
   private readonly context: GPUCanvasContext;
   private readonly depthFormat: GPUTextureFormat = 'depth24plus';
   private readonly device: GPUDevice;
   private readonly geometries = new Map<string, Geometry>();
+  private readonly luminanceFormat: GPUTextureFormat = 'r8unorm';
   private readonly objects: {
     animate?: (delta: number, time: number) => void;
     compute?: (pass: GPUComputePassEncoder) => void;
@@ -63,6 +64,7 @@ export class Renderer {
     depth: GPUTexture;
     outputColor: GPUTexture;
     outputData: GPUTexture;
+    outputLuminance: GPUTexture;
   } = {
     BRDF: null!,
     Environment: null!,
@@ -72,6 +74,7 @@ export class Renderer {
     depth: null!,
     outputColor: null!,
     outputData: null!,
+    outputLuminance: null!,
   };
 
   constructor(canvas: HTMLCanvasElement, sampleCount: number, device: GPUDevice) {
@@ -84,7 +87,6 @@ export class Renderer {
     this.context = context;
     this.device = device;
     this.colorFormat = navigator.gpu.getPreferredCanvasFormat();
-    this.dataFormat = 'rgba16float';
     this.context.configure({
       alphaMode: 'premultiplied',
       device,
@@ -123,6 +125,10 @@ export class Renderer {
   
   getDevice() {
     return this.device;
+  }
+
+  getLuminanceFormat() {
+    return this.luminanceFormat;
   }
 
   getSampleCount() {
@@ -197,6 +203,7 @@ export class Renderer {
       dataFormat,
       depthFormat,
       device,
+      luminanceFormat,
       postprocessing,
       sampleCount,
       size,
@@ -218,7 +225,7 @@ export class Renderer {
       format: depthFormat,
       usage: GPUTextureUsage.RENDER_ATTACHMENT,
     });
-    for (const texture of ['outputColor', 'outputData'] as (keyof typeof textures)[]) {
+    for (const texture of ['outputColor', 'outputData', 'outputLuminance'] as (keyof typeof textures)[]) {
       if (textures[texture]) {
         textures[texture].destroy();
       }
@@ -226,7 +233,7 @@ export class Renderer {
         textures[texture] = device.createTexture({
           size: [size.width * scale, size.height * scale],
           sampleCount,
-          format: dataFormat,
+          format: texture === 'outputLuminance' ? luminanceFormat : dataFormat,
           usage: GPUTextureUsage.RENDER_ATTACHMENT,
         });
       }
@@ -294,6 +301,17 @@ export class Renderer {
             view: postprocessing.getInput().data.createView(),
           }),
           clearValue: [0, 0, 0, camera.far],
+          loadOp: 'clear',
+          storeOp: 'store',
+        },
+        {
+          ...(textures.outputLuminance ? {
+            view: textures.outputLuminance.createView(),
+            resolveTarget: postprocessing.getInput().luminance.createView(),
+          } : {
+            view: postprocessing.getInput().luminance.createView(),
+          }),
+          clearValue: [0, 0, 0, 0],
           loadOp: 'clear',
           storeOp: 'store',
         },

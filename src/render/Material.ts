@@ -15,6 +15,7 @@ export class Material {
     multisample = true,
     outputColor = true,
     outputData = true,
+    outputLuminance = true,
   }: {
     renderer: Renderer;
     key: string;
@@ -27,6 +28,7 @@ export class Material {
     multisample?: boolean;
     outputColor?: boolean;
     outputData?: boolean;
+    outputLuminance?: boolean;
   }) {
     this.pipeline = renderer.getRenderPipeline(key, () => {
       const device = renderer.getDevice();
@@ -47,6 +49,9 @@ export class Material {
             }] : []),
             ...(outputData ? [{
               format: renderer.getDataFormat(),
+            }] : []),
+            ...(outputLuminance ? [{
+              format: renderer.getLuminanceFormat(),
             }] : []),
           ],
         },

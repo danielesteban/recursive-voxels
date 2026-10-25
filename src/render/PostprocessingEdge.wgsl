@@ -1,7 +1,8 @@
 @group(0) @binding(0) var colorTexture: texture_2d<f32>;
-@group(0) @binding(1) var dataTexture: texture_2d<f32>;
-@group(0) @binding(2) var textureSampler: sampler;
-@group(0) @binding(3) var<uniform> resolution: vec2f;
+@group(0) @binding(1) var bloomTexture: texture_2d<f32>;
+@group(0) @binding(2) var dataTexture: texture_2d<f32>;
+@group(0) @binding(3) var textureSampler: sampler;
+@group(0) @binding(4) var<uniform> resolution: vec2f;
 
 struct FragmentInput {
   @location(0) uv: vec2f,
@@ -11,6 +12,7 @@ struct FragmentOutput {
   @location(0) color: vec4f,
 }
 
+const bloomIntensity: f32 = 0.5;
 const edgeColor: vec3f = vec3f(0.0);
 const edgeIntensity: f32 = 0.5;
 const depthScale: f32 = 0.5;
@@ -47,8 +49,9 @@ fn getEdge(uv: vec2f) -> f32 {
 
 @fragment
 fn frag_main(fragment: FragmentInput) -> FragmentOutput {
-  let pixel = textureSample(colorTexture, textureSampler, fragment.uv);
+  let color = textureSample(colorTexture, textureSampler, fragment.uv);
+  let bloom = textureSample(bloomTexture, textureSampler, fragment.uv);
   var output: FragmentOutput;
-  output.color = vec4f(mix(pixel.rgb, edgeColor, getEdge(fragment.uv) * pixel.a), pixel.a);
+  output.color = vec4f(mix(color.rgb + bloom.rgb * bloomIntensity, edgeColor, getEdge(fragment.uv) * color.a), 1.0);
   return output;
 }

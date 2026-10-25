@@ -1,7 +1,6 @@
 @group(0) @binding(0) var colorTexture: texture_2d<f32>;
-@group(0) @binding(1) var blurTexture: texture_2d<f32>;
-@group(0) @binding(2) var textureSampler: sampler;
-@group(0) @binding(3) var<uniform> resolution: vec2f;
+@group(0) @binding(1) var textureSampler: sampler;
+@group(0) @binding(2) var<uniform> resolution: vec2f;
 
 struct FragmentInput {
   @location(0) uv: vec2f,
@@ -33,9 +32,7 @@ fn frag_main(fragment: FragmentInput) -> FragmentOutput {
   let d = length(uv * 0.5 * uv * 0.5);
   uv = (uv * d + uv * 0.935) + 0.5;
 
-  let pixel = textureSample(colorTexture, textureSampler, uv);
-  let blur = textureSample(blurTexture, textureSampler, uv);
-  var color = linearToSrgb3(tonemapACES(mix(pixel.rgb, blur.rgb, pow(1.0 - blur.a, 2.0))));
+  var color = linearToSrgb3(tonemapACES(textureSample(colorTexture, textureSampler, uv).rgb));
 
   let s = 1.0 - smoothstep(320.0, 1440.0, resolution.y) + 1.0;
   let j = cos(uv.y*resolution.y*s) * 0.1;
