@@ -1,6 +1,6 @@
 import { vec2, vec3 } from 'gl-matrix';
 import type { VoxelVolume } from 'compute/VoxelVolume';
-import { BlockModel, BlockType, ChunkSize, getModel, getTexture, isOpaque, LightColor, MaxLight } from 'compute/WorldConstants';
+import { BlockModel, BlockType, ChunkSize, getModel, getTexture, isCulled, isOpaque, LightColor, MaxLight } from 'compute/WorldConstants';
 import { type Face, Models } from 'compute/VoxelModels';
 
 const maxVoxelCount = (ChunkSize ** 3) / 2;
@@ -42,10 +42,22 @@ const vUV = [
 ];
 const getLighting = (
   face: Face,
+  model: BlockModel,
   neighbor: Uint8Array,
   neighborPosition: vec3,
   volume: VoxelVolume
 ) => {
+  switch (model) {
+    case BlockModel.lightS:
+    case BlockModel.lightW:
+    case BlockModel.lightE:
+    case BlockModel.lightN:
+    case BlockModel.lightT:
+    case BlockModel.lightB:
+      lighting.ao.fill(1);
+      lighting.light.fill(1);
+      return lighting;
+  }
   for (let i = 0; i < 4; i++) {
     vec3.scale(vtangent, face.tangent, vUV[i][0]);
     vec3.scale(vbitangent, face.bitangent, vUV[i][1]);
@@ -144,41 +156,18 @@ export const VoxelMesher = (
           continue;
         }
         const model = getModel(block[0]);
-        switch (model) {
-          case BlockModel.block:
-            for (const face of Models[model]) {
-              volume.wrap(vec3.add(neighborPosition, position, face.normal));
-              const neighbor = volume.sample(neighborPosition);
-              if (!isOpaque(neighbor[0])) {
-                pushFace(
-                  block[0],
-                  face,
-                  getLighting(face, neighbor, neighborPosition, volume),
-                  voxel
-                );
-              }
-            }
-            break;
-          case BlockModel.lightS:
-          case BlockModel.lightW:
-          case BlockModel.lightE:
-          case BlockModel.lightN:
-          case BlockModel.lightT:
-          case BlockModel.lightB:
-            lighting.ao.fill(1);
-            lighting.light.fill(1);
-            for (const face of Models[model]) {
-              // @dani @incomplete
-              // Cull the back face of the light
-              // If the neighbor is opaque
-              pushFace(
-                block[0],
-                face,
-                lighting,
-                voxel
-              );
-            }
-            break;
+        for (let i = 0, l = Models[model].length; i < l; i++) {
+          const face = Models[model][i];
+          volume.wrap(vec3.add(neighborPosition, position, face.normal));
+          const neighbor = volume.sample(neighborPosition);
+          if (!isCulled(block[0], neighbor[0], i)) {
+            pushFace(
+              block[0],
+              face,
+              getLighting(face, model, neighbor, neighborPosition, volume),
+              voxel
+            );
+          }
         }
       }
     }

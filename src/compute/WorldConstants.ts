@@ -1,3 +1,12 @@
+export enum BlockFace {
+  south,
+  west,
+  east,
+  north,
+  top,
+  bottom,
+}
+
 export enum BlockModel {
   block,
   lightS,
@@ -59,6 +68,25 @@ export const getTexture = (value: BlockType) => {
       return BlockTexture.light;
     default:
       return BlockTexture.block;
+  }
+};
+
+export const isCulled = (value: BlockType, neighbor: BlockType, face: BlockFace) => {
+  switch (value) {
+    case BlockType.lightS:
+      return face === BlockFace.north && isOpaque(neighbor);
+    case BlockType.lightW:
+      return face === BlockFace.east && isOpaque(neighbor);
+    case BlockType.lightE:
+      return face === BlockFace.west && isOpaque(neighbor);
+    case BlockType.lightN:
+      return face === BlockFace.south && isOpaque(neighbor);
+    case BlockType.lightT:
+      return face === BlockFace.bottom && isOpaque(neighbor);
+    case BlockType.lightB:
+      return face === BlockFace.top && isOpaque(neighbor);
+    default:
+      return isOpaque(neighbor);
   }
 };
 
