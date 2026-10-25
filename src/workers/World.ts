@@ -222,8 +222,8 @@ Promise.all([
       playContactSFX(body2, force);
     }
 
-    lastContactSFX.set(body1.GetID().GetIndexAndSequenceNumber(), time);
-    lastContactSFX.set(body2.GetID().GetIndexAndSequenceNumber(), time);
+    body1.IsDynamic() && lastContactSFX.set(body1.GetID().GetIndexAndSequenceNumber(), time);
+    body2.IsDynamic() && lastContactSFX.set(body2.GetID().GetIndexAndSequenceNumber(), time);
   });
 
   for (let z = 0; z < VolumeChunks[2]; z++) {
