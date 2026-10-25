@@ -160,7 +160,7 @@ export class Mesh<GeometryType extends Geometry = Geometry, MaterialType extends
     return transform;
   }
 
-  async raycast(ray: Ray, intersections: Intersection[]) {
+  raycast(ray: Ray, intersections: Intersection[]) {
     const { geometry } = this;
     const bounds = this.getBounds();
     const transform = this.getTransform();

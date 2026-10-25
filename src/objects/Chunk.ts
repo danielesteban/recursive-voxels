@@ -3,46 +3,15 @@ import type { Intersection, Ray } from 'compute/Raycaster';
 import type { RecursiveInstances } from 'compute/RecursiveInstances';
 import { BlockTexture, ChunkSize } from 'compute/WorldConstants';
 import { Sphere } from 'math/Sphere';
+import { ChunkGeometry } from 'objects/ChunkGeometry';
 import ChunkMaterialCode from 'objects/ChunkMaterial.wgsl';
 import { CameraGPUStruct } from 'render/Camera';
-import { Geometry } from 'render/Geometry';
 import { Material } from 'render/Material';
 import { Mesh, TransformGPUStruct } from 'render/Mesh';
 import type { Renderer } from 'render/Renderer';
 import LightingCode from 'textures/Lighting.wgsl';
 
-export class Chunk extends Mesh {
-  private static readonly VertexLayout: GPUVertexBufferLayout = {
-    arrayStride: 40,
-    attributes: [
-      {
-        shaderLocation: 0,
-        offset: 0,
-        format: 'float32x3',
-      },
-      {
-        shaderLocation: 1,
-        offset: 12,
-        format: 'float32x3',
-      },
-      {
-        shaderLocation: 2,
-        offset: 24,
-        format: 'float32x2',
-      },
-      {
-        shaderLocation: 3,
-        offset: 32,
-        format: 'float32',
-      },
-      {
-        shaderLocation: 4,
-        offset: 36,
-        format: 'uint32',
-      },
-    ],
-  };
-
+export class Chunk extends Mesh<ChunkGeometry> {
   private static material?: Material;
   private static getMaterial(renderer: Renderer) {
     if (!Chunk.material) {
@@ -56,7 +25,7 @@ export class Chunk extends Mesh {
           + ChunkMaterialCode
         ),
         buffers: [
-          Chunk.VertexLayout,
+          ChunkGeometry.VertexLayout,
           {
             arrayStride: 16,
             stepMode: 'instance',
@@ -139,11 +108,7 @@ export class Chunk extends Mesh {
     position: vec3,
   ) {
     const samplers = Chunk.getSamplers(renderer);
-    const geometry = new Geometry(
-      renderer,
-      buffers,
-      Chunk.VertexLayout
-    );
+    const geometry = new ChunkGeometry(renderer, buffers);
     super(
       renderer,
       geometry,
@@ -194,13 +159,17 @@ export class Chunk extends Mesh {
     super.destroy();
   }
 
+  getInfo(triangle: number) {
+    return this.getGeometry().getInfo(triangle);
+  }
+
   override get instanceCount() {
     return this.instances.getInstances().count;
   }
 
   private static aux1 = new Sphere();
   private static aux2 = mat4.create();
-  override async raycast(ray: Ray, intersections: Intersection[]) {
+  override raycast(ray: Ray, intersections: Intersection[]) {
     const { instances } = this;
     const { aux1: instanceBounds, aux2: instanceTransform } = Chunk;
     const bounds = this.getBounds();

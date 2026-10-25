@@ -2,6 +2,12 @@ import { vec3 } from 'gl-matrix';
 import { Camera } from 'render/Camera';
 import type { Renderer } from 'render/Renderer';
 
+export enum ButtonState {
+  pressed = (1 << 0),
+  down = (1 << 1),
+  up = (1 << 2),
+}
+
 export class Input {
   private isLocked = false;
   private canvas: HTMLCanvasElement;
@@ -30,20 +36,15 @@ export class Input {
     z: [],
   };
   private readonly buttons = {
-    primary: false,
-    primaryDown: false,
-    primaryUp: false,
-    secondary: false,
-    secondaryDown: false,
-    secondaryUp: false,
-    tertiary: false,
-    tertiaryDown: false,
-    tertiaryUp: false,
-    palette: false,
-    paletteDown: false,
-    paletteUp: false,
+    primary: 0,
+    secondary: 0,
+    tertiary: 0,
+    palette: 0,
+    modifier: 0,
+    tool1: 0,
+    tool2: 0,
+    tool3: 0,
   };
-  private tool = 0;
 
   constructor(renderer: Renderer) {
     this.canvas = renderer.getCanvas();
@@ -89,16 +90,19 @@ export class Input {
         movement.y.unshift(-1);
         break;
       case '1':
-        this.tool = 0;
+        buttons.tool1 |= ButtonState.pressed | ButtonState.down;
         break;
       case '2':
-        this.tool = 1;
+        buttons.tool2 |= ButtonState.pressed | ButtonState.down;
         break;
       case '3':
-        this.tool = 2;
+        buttons.tool3 |= ButtonState.pressed | ButtonState.down;
         break;
       case 'E':
-        buttons.palette = buttons.paletteDown = true;
+        buttons.palette |= ButtonState.pressed | ButtonState.down;
+        break;
+      case 'CONTROL':
+        buttons.modifier |= ButtonState.pressed | ButtonState.down;
         break;
     }
   }
@@ -137,9 +141,25 @@ export class Input {
         if (i !== -1) movement.y.splice(i, 1);
         break;
       }
+      case '1':
+        buttons.tool1 &= ~ButtonState.pressed;
+        buttons.tool1 |= ButtonState.up;
+        break;
+      case '2':
+        buttons.tool2 &= ~ButtonState.pressed;
+        buttons.tool2 |= ButtonState.up;
+        break;
+      case '3':
+        buttons.tool3 &= ~ButtonState.pressed;
+        buttons.tool3 |= ButtonState.up;
+        break;
       case 'E':
-        buttons.palette = false;
-        buttons.paletteUp = true;
+        buttons.palette &= ~ButtonState.pressed;
+        buttons.palette |= ButtonState.up;
+        break;
+      case 'CONTROL':
+        buttons.modifier &= ~ButtonState.pressed;
+        buttons.modifier |= ButtonState.up;
         break;
     }
   }
@@ -149,14 +169,12 @@ export class Input {
     this.isLocked = document.pointerLockElement === canvas;
     document.body.classList[this.isLocked ? 'add' : 'remove']('pointerlock');
     if (!this.isLocked) {
-      if (buttons.primary) buttons.primaryUp = true;
-      buttons.primary = buttons.primaryDown = false;
-      if (buttons.secondary) buttons.secondaryUp = true;
-      buttons.secondary = buttons.secondaryDown = false;
-      if (buttons.tertiary) buttons.tertiaryUp = true;
-      buttons.tertiary = buttons.tertiaryDown = false;
-      if (buttons.palette) buttons.paletteUp = true;
-      buttons.palette = buttons.paletteDown = false;
+      for (const key in buttons) {
+        if (buttons[key as (keyof typeof buttons)] & ButtonState.pressed) {
+          buttons[key as (keyof typeof buttons)] |= ButtonState.up;
+        }
+        buttons[key as (keyof typeof buttons)] &= ~(ButtonState.pressed | ButtonState.down);
+      }
       movement.x.length = movement.y.length = movement.z.length = 0;
     }
   }
@@ -168,13 +186,13 @@ export class Input {
     } else {
       switch (e.button) {
         case 0:
-          buttons.primary = buttons.primaryDown = true;
+          buttons.primary |= ButtonState.pressed | ButtonState.down;
           break;
         case 1:
-          buttons.tertiary = buttons.tertiaryDown = true;
+          buttons.tertiary |= ButtonState.pressed | ButtonState.down;
           break;
         case 2:
-          buttons.secondary = buttons.secondaryDown = true;
+          buttons.secondary |= ButtonState.pressed | ButtonState.down;
           break;
       }
     }
@@ -195,16 +213,16 @@ export class Input {
     const { buttons } = this;
     switch (e.button) {
       case 0:
-        buttons.primary = false;
-        buttons.primaryUp = true;
+        buttons.primary &= ~ButtonState.pressed;
+        buttons.primary |= ButtonState.up;
         break;
       case 1:
-        buttons.tertiary = false;
-        buttons.tertiaryUp = true;
+        buttons.tertiary &= ~ButtonState.pressed;
+        buttons.tertiary |= ButtonState.up;
         break;
       case 2:
-        buttons.secondary = false;
-        buttons.secondaryUp = true;
+        buttons.secondary &= ~ButtonState.pressed;
+        buttons.secondary |= ButtonState.up;
         break;
     }
   }
@@ -263,15 +281,10 @@ export class Input {
   getButtons() {
     const { buttons } = this;
     const data = { ...buttons };
-    buttons.primaryDown = buttons.primaryUp = false;
-    buttons.secondaryDown = buttons.secondaryUp = false;
-    buttons.tertiaryDown = buttons.tertiaryUp = false;
-    buttons.paletteDown = buttons.paletteUp = false;
+    for (const key in buttons) {
+      buttons[key as (keyof typeof buttons)] &= ~(ButtonState.down | ButtonState.up);
+    }
     return data;
-  }
-
-  getTool() {
-    return this.tool;
   }
 
   private static readonly aux4 = Array.from({ length: 3 * 3 * 3 }, () => vec3.create());

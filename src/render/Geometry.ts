@@ -3,7 +3,7 @@ import { Box } from 'math/Box';
 import { Sphere } from 'math/Sphere';
 import type { Renderer } from 'render/Renderer';
 
-type GeometryBuffers = { index: Uint16Array; vertices: Float32Array };
+export type GeometryBuffers = { index: Uint16Array; vertices: Float32Array };
 
 export class Geometry {
   static readonly DefaultVertexLayout: GPUVertexBufferLayout = {
@@ -27,8 +27,8 @@ export class Geometry {
     ],
   };
 
-  private readonly buffers: GeometryBuffers;
-  private readonly vertexLayout: GPUVertexBufferLayout;
+  protected readonly buffers: GeometryBuffers;
+  protected readonly vertexLayout: GPUVertexBufferLayout;
 
   private readonly bounds = new Sphere();
   private readonly index: GPUBuffer;
