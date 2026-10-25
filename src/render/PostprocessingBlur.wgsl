@@ -12,7 +12,7 @@ struct FragmentOutput {
 }
 
 fn getBlur(uv: vec2f) -> vec4f {
-  let offset = vec2(2.0 / resolution) * direction;
+  let offset = vec2(1.0 / resolution) * direction;
   var color = vec4f(0.0);
   color += textureSample(colorTexture, textureSampler, uv - offset * 4.0);
   color += textureSample(colorTexture, textureSampler, uv - offset * 3.0);
