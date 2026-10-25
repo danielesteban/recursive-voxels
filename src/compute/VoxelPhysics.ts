@@ -1,6 +1,6 @@
 import { vec3 } from 'gl-matrix';
 import type { VoxelVolume } from 'compute/VoxelVolume';
-import { BlockType, ChunkSize } from 'compute/WorldConstants';
+import { ChunkSize, isOpaque } from 'compute/WorldConstants';
 
 const maxBoxesCount = (ChunkSize ** 3) / 2;
 
@@ -45,22 +45,19 @@ export const VoxelPhysics = (
         vec3.add(position, origin, voxel);
         const blockType = volume.sample(position)[0];
         if (
-          blockType === BlockType.air
+          !isOpaque(blockType)
           || hasProcessed(voxel)
         ) {
           continue;
         }
+
         vec3.set(size, 0, 0, 0);
-
-        // @dani @incomplete
-        // Handle lights special case
-
         for (let i = z + 1; i <= ChunkSize; i++) {
           vec3.set(voxel, x, y, i);
           vec3.add(position, origin, voxel);
           if (
             i == ChunkSize
-            || volume.sample(position)[0] === BlockType.air
+            || !isOpaque(volume.sample(position)[0])
             || hasProcessed(voxel)
           ) {
             size[2] = i - z;
@@ -75,7 +72,7 @@ export const VoxelPhysics = (
             vec3.add(position, origin, voxel);
             if (
               j == ChunkSize
-              || volume.sample(position)[0] === BlockType.air
+              || !isOpaque(volume.sample(position)[0])
               || hasProcessed(voxel)
             ) {
               size[1] = j - y;
@@ -91,7 +88,7 @@ export const VoxelPhysics = (
               vec3.add(position, origin, voxel);
               if (
                 k == ChunkSize
-                || volume.sample(position)[0] === BlockType.air
+                || !isOpaque(volume.sample(position)[0])
                 || hasProcessed(voxel)
               ) {
                 size[0] = k - x;
@@ -103,8 +100,7 @@ export const VoxelPhysics = (
         for (let i = z; i < z + size[2]; i++) {
           for (let j = y; j < y + size[1]; j++) {
             for (let k = x; k < x + size[0]; k++) {
-              vec3.set(voxel, k, j, i);
-              processed.add(`${voxel[0]}:${voxel[1]}:${voxel[2]}`);
+              processed.add(`${k}:${j}:${i}`);
             }
           }
         }
