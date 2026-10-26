@@ -305,7 +305,7 @@ Promise.all([
 
     const damp = Math.exp(-20 * delta);
     vec3.scale(player.velocity, player.velocity, damp);
-    vec3.scaleAndAdd(player.velocity, player.velocity, player.movement, 60 * delta * (1 - damp));
+    vec3.scaleAndAdd(player.velocity, player.velocity, player.movement, 1 - damp);
     physics.setBodyLinearVelocity(player.body, player.velocity);
 
     physics.step(delta);
