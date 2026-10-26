@@ -8,6 +8,7 @@ import { Renderer } from 'render/Renderer';
 import Environment from 'textures/citrus_orchard_road_puresky_2k.jpg';
 import { FPS } from 'ui/FPS';
 import { Toolbar } from 'ui/Toolbar';
+import { showWelcome } from 'ui/Welcome';
 
 const app = document.getElementById('app')!;
 const canvas = document.createElement('canvas');
@@ -68,6 +69,8 @@ Promise.all([
 
   clock = performance.now() / 1000;
   frame = requestAnimationFrame(onFrame);
+
+  showWelcome(renderer.getCanvas());
 }).catch((e: Error) => {
   const error = document.getElementById('error')!;
   error.textContent = `Error: "${e.message}"`;
