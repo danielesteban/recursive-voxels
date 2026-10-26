@@ -104,6 +104,10 @@ export class Input {
       case 'CONTROL':
         buttons.modifier |= ButtonState.pressed | ButtonState.down;
         break;
+      case 'TAB':
+        e.preventDefault();
+        document.body.classList.toggle('hiddenUI');
+        break;
     }
   }
 

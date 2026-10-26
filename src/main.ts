@@ -11,6 +11,7 @@ import { Camera } from 'render/Camera';
 import { Renderer } from 'render/Renderer';
 import Environment from 'textures/citrus_orchard_road_puresky_2k.jpg';
 import { FPS } from 'ui/FPS';
+import { Toolbar } from 'ui/Toolbar';
 
 const app = document.getElementById('app')!;
 const canvas = document.createElement('canvas');
@@ -26,6 +27,7 @@ Promise.all([
   let frame: number;
   
   const fps = new FPS();
+  const toolbar = new Toolbar();
   const input = new Input(renderer);
   const raycaster = new Raycaster();
   const palette = new Palette(renderer);
@@ -69,6 +71,7 @@ Promise.all([
     }
     if (hit.obj instanceof Palette) {
       brush.color = Math.floor((1.0 - hit.uv[1]) * 8.0) * 8 + Math.floor(hit.uv[0] * 8.0);
+      toolbar.setActiveColor(brush.color);
       palette.visible = false;
       return;
     }
@@ -90,6 +93,8 @@ Promise.all([
           brush.tool = 0;
       }
       brush.color = info.color;
+      toolbar.setActiveColor(brush.color);
+      toolbar.setActiveTool(brush.tool);
       return;
     }
     vec3.scaleAndAdd(hit.position, hit.position, hit.normal, (buttons.primary & ButtonState.down) ? 0.9 : -0.1);
@@ -159,12 +164,15 @@ Promise.all([
     }
     if (buttons.tool1 & ButtonState.down) {
       brush.tool = BrushTool.block;
+      toolbar.setActiveTool(brush.tool);
     }
     if (buttons.tool2 & ButtonState.down) {
       brush.tool = BrushTool.blockLight;
+      toolbar.setActiveTool(brush.tool);
     }
     if (buttons.tool3 & ButtonState.down) {
       brush.tool = BrushTool.light;
+      toolbar.setActiveTool(brush.tool);
     }
 
     const movement = input.getMovement();

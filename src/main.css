@@ -8,7 +8,7 @@ body {
   background: #000;
   color: #eee;
   cursor: default;
-  font-family: monospace;
+  font-family: 'Silkscreen', monospace;
   font-optical-sizing: auto;
   font-size: 0.75rem;
   font-style: normal;
@@ -126,5 +126,85 @@ body.pointerlock #cursor {
 }
 
 body.pointerlock #info {
+  display: none;
+}
+
+#toolbar {
+  display: none;
+  position: absolute;
+  bottom: 1rem;
+  left: 50%;
+  transform: translate(-50%, 0);
+  border: 0.25rem solid #000;
+  border-radius: 0.25rem;
+  box-shadow: 0 0 0.25rem rgba(0, 0, 0, 0.3);
+  background: rgba(0, 0, 0, 0.8);
+}
+
+#toolbar > div {
+  border-left: 0.25rem solid #000;
+}
+
+#toolbar > div:first-child {
+  border-left: 0;
+}
+
+#toolbar > .color > .icon {
+  border: 0.25rem solid rgba(0, 0, 0, 0.5);
+  border-radius: 1.5rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin: 0.5rem;
+  background: var(--color);
+}
+
+#toolbar > .color > .shortcut {
+  padding-bottom: 0.0625rem;
+}
+
+#toolbar > .tool > .icon {
+  margin: 0.5rem;
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  align-items: center;
+  justify-items: center;
+  position: relative;
+}
+
+#toolbar > .tool > .icon > canvas {
+  image-rendering: pixelated;
+}
+
+#toolbar > .tool > .icon > .tint {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--color);
+  mix-blend-mode: multiply;
+}
+
+#toolbar .shortcut {
+  background: #000;
+  text-align: center;
+  padding-top: 0.25rem;
+  line-height: 1rem;
+}
+
+#toolbar .shortcut > .active {
+  border-radius: 0.125rem;
+  padding-bottom: 0.0625rem;
+}
+
+#toolbar > .tool.active > .shortcut > .active {
+  background: #393;
+}
+
+body.pointerlock #toolbar {
+  display: flex;
+}
+
+body.hiddenUI #toolbar {
   display: none;
 }
