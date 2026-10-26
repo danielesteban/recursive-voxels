@@ -11,10 +11,12 @@ export class Material {
     blend,
     buffers = [Geometry.DefaultVertexLayout],
     cullMode = 'back',
-    depth = true,
+    depthTest = true,
+    depthWrite = true,
     multisample = true,
     outputColor = true,
     outputData = true,
+    outputDepth = true,
     outputLuminance = true,
   }: {
     renderer: Renderer;
@@ -23,11 +25,13 @@ export class Material {
     blend?: GPUBlendState;
     buffers?: GPUVertexBufferLayout[];
     cullMode?: GPUCullMode;
-    depth?: boolean;
+    depthTest?: boolean;
+    depthWrite?: boolean;
     instanceCount?: number;
     multisample?: boolean;
     outputColor?: boolean;
     outputData?: boolean;
+    outputDepth?: boolean;
     outputLuminance?: boolean;
   }) {
     this.pipeline = renderer.getRenderPipeline(key, () => {
@@ -59,10 +63,10 @@ export class Material {
           topology: 'triangle-list',
           cullMode,
         },
-        ...(depth ? {
+        ...(outputDepth ? {
           depthStencil: {
-            depthWriteEnabled: true,
-            depthCompare: 'less',
+            depthWriteEnabled: depthWrite,
+            depthCompare: depthTest ? 'less' : 'always',
             format: renderer.getDepthFormat(),
           },
         } : {}),

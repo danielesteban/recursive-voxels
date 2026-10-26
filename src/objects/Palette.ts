@@ -18,6 +18,8 @@ export class Palette extends Mesh {
           + LightingCode
           + PaletteMaterialCode
         ),
+        depthTest: false,
+        depthWrite: false,
       });
     }
     return Palette.material;

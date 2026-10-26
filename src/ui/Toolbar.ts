@@ -20,7 +20,6 @@ export class Toolbar {
       shortcut.innerText = 'E';
       color.appendChild(shortcut);
       dom.appendChild(color);
-      this.setActiveColor(46);
     }
     const tools = [
       {
@@ -80,6 +79,8 @@ export class Toolbar {
       dom.appendChild(tool);
       this.tools.push(tool);
     }
+
+    this.setActiveColor(0);
     this.setActiveTool(0);
   }
 
