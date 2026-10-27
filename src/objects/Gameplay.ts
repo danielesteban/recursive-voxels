@@ -154,6 +154,7 @@ export class Gameplay {
       return;
     }
     const info = hit.obj.getInfo(hit.triangle);
+    brush.color = info.color;
     switch (info.blockType) {
       case BlockType.light:
         brush.tool = 1;
@@ -169,7 +170,6 @@ export class Gameplay {
       default:
         brush.tool = 0;
     }
-    brush.color = info.color;
     toolbar.setActiveColor(brush.color);
     toolbar.setActiveTool(brush.tool);
   }
@@ -180,9 +180,11 @@ export class Gameplay {
     if (!hit) {
       return false;
     }
-    brush.color = Math.floor((1.0 - hit.uv[1]) * 8.0) * 8 + Math.floor(hit.uv[0] * 8.0);
-    toolbar.setActiveColor(brush.color);
     palette.visible = false;
+    brush.color = Math.floor((1.0 - hit.uv[1]) * 8.0) * 8 + Math.floor(hit.uv[0] * 8.0);
+    brush.tool = BrushTool.block;
+    toolbar.setActiveColor(brush.color);
+    toolbar.setActiveTool(brush.tool);
     return true;
   }
 
