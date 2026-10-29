@@ -59,10 +59,10 @@ export const showWelcome = (canvas: HTMLCanvasElement) => {
   controlsA.classList.add('controls');
   content.appendChild(controlsA);
   controlsA.appendChild(getControlsEntryKeys('Move', [['W'], ['A', 'S', 'D']]));
-  controlsA.appendChild(getControlsEntryKeys('Down', [['Shift']]));
-  controlsA.appendChild(getControlsEntryKeys('Up', [['Space']]));
-  controlsA.appendChild(getControlsEntryIcon('Speed', MouseIcons.middleClick));
   controlsA.appendChild(getControlsEntryKeys('Palette', [['E']]));
+  controlsA.appendChild(getControlsEntryKeys('Move Down', [['Shift']]));
+  controlsA.appendChild(getControlsEntryKeys('Move Up', [['Space']]));
+  controlsA.appendChild(getControlsEntryIcon('Set Speed', MouseIcons.middleClick));
 
   const controlsB = document.createElement('div');
   controlsB.classList.add('controls');
