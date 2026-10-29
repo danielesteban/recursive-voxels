@@ -87,6 +87,20 @@ export class World {
     } satisfies Operation);
   }
 
+  undo() {
+    const { worker } = this;
+    worker.postMessage({
+      op: 'undo',
+    } satisfies Operation);
+  }
+
+  redo() {
+    const { worker } = this;
+    worker.postMessage({
+      op: 'redo',
+    } satisfies Operation);
+  }
+
   private onWorkerMessage({ data }: { data: Operation }) {
     const { balls, chunks, instances, lightmap, player, renderer, worker } = this;
     switch (data.op) {

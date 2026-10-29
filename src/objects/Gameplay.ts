@@ -36,6 +36,13 @@ export class Gameplay {
     color: 46,
   };
 
+  private historyTimers = {
+    lastUndo: 0,
+    undoDelay: 0.5,
+    lastRedo: 0,
+    redoDelay: 0.5,
+  };
+
   constructor(
     renderer: Renderer,
     input: Input,
@@ -52,10 +59,13 @@ export class Gameplay {
     toolbar.setActiveTool(this.brush.tool);
   }
 
-  animate() {
-    const { brush, input, palette, raycaster, renderer, toolbar, world } = this;
+  animate(_delta: number, time: number) {
+    const { brush, historyTimers, input, palette, raycaster, renderer, toolbar, world } = this;
     const buttons = input.getButtons();
 
+    if (buttons.palette & ButtonState.down) {
+      this.showPalette();
+    }
     if (buttons.tool1 & ButtonState.down) {
       brush.tool = BrushTool.block;
       toolbar.setActiveTool(brush.tool);
@@ -67,9 +77,6 @@ export class Gameplay {
     if (buttons.tool3 & ButtonState.down) {
       brush.tool = BrushTool.light;
       toolbar.setActiveTool(brush.tool);
-    }
-    if (buttons.palette & ButtonState.down) {
-      this.showPalette();
     }
     if ((buttons.primary & ButtonState.down) || (buttons.secondary & ButtonState.down)) {
       raycaster.setFromCamera(renderer.getCamera());
@@ -84,6 +91,36 @@ export class Gameplay {
     if (buttons.tertiary & ButtonState.down) {
       this.shootBall();
     }
+    if (
+      (buttons.undo & ButtonState.down)
+      || (
+        (buttons.undo & ButtonState.pressed)
+        && historyTimers.lastUndo < time - historyTimers.undoDelay
+      )
+    ) {
+      world.undo();
+      historyTimers.lastUndo = time;
+      historyTimers.undoDelay = Math.max(historyTimers.undoDelay * 0.5, 0.1);
+    }
+    if (buttons.undo & ButtonState.up) {
+      historyTimers.lastUndo = 0;
+      historyTimers.undoDelay = 0.5;
+    }
+    if (
+      (buttons.redo & ButtonState.down)
+      || (
+        (buttons.redo & ButtonState.pressed)
+        && historyTimers.lastRedo < time - historyTimers.redoDelay
+      )
+    ) {
+      world.redo();
+      historyTimers.lastRedo = time;
+      historyTimers.redoDelay = Math.max(historyTimers.redoDelay * 0.5, 0.1);
+    }
+    if (buttons.redo & ButtonState.up) {
+      historyTimers.lastRedo = 0;
+      historyTimers.redoDelay = 0.5;
+    }
 
     const movement = input.getMovement();
     if (movement[0] || movement[1] || movement[2]) {
@@ -93,7 +130,7 @@ export class Gameplay {
   }
 
   private build(isRemoving: boolean) {
-    const { brush, raycaster, renderer, world } = this;
+    const { brush, raycaster, world } = this;
     const { normalToLightBrush } = Gameplay;
     const hit = raycaster.intersect(world.getChunks());
     if (!hit) {
@@ -121,13 +158,6 @@ export class Gameplay {
       }
     }
     world.update(hit.position, value);
-    renderer.getSFX().playAt(
-      'build',
-      hit.position,
-      1,
-      (Math.random() - 0.5) * 1000,
-      { type: !isRemoving ? 'lowpass': 'highpass', frequency: 1000 + Math.random() * 1000 }
-    );
   }
 
   private static readonly aux1 = vec3.create();

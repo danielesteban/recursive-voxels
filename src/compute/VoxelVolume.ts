@@ -18,6 +18,13 @@ export class VoxelVolume {
     ctx: OffscreenCanvasRenderingContext2D;
     pixels: ImageData;
   };
+  private readonly history: {
+    undo: { position: vec3; undo: number; redo: number }[];
+    redo: { position: vec3; undo: number; redo: number }[];
+  } = {
+    undo: [],
+    redo: [],
+  };
 
   constructor(size: vec3) {
     this.data = new ArrayBuffer(size[0] * size[1] * size[2] * 2);
@@ -107,7 +114,8 @@ export class VoxelVolume {
   }
 
   private static readonly aux1 = vec3.create();
-  update(affected: Set<string>, position: vec3, value: BlockType) {
+  update(affected: Set<string>, position: vec3, value: BlockType, addToHistory = true) {
+    const { history } = this;
     const { aux1: neighborPosition, lightNeighbors } = VoxelVolume;
     const voxel = this.sample(position);
     const current = voxel[0];
@@ -115,7 +123,6 @@ export class VoxelVolume {
       return false;
     }
     voxel[0] = value;
-
     this.expandAffectedChunks(affected, position);
     if (isLight(current)) {
       const level = voxel[1];
@@ -142,8 +149,33 @@ export class VoxelVolume {
       }
       this.floodLight(affected, queue);
     }
-
+    if (addToHistory) {
+      history.undo.push({ position, undo: current, redo: value });
+      history.redo.length = 0;
+    }
     return true;
+  }
+
+  undo(affected: Set<string>) {
+    const { history } = this;
+    const update = history.undo.pop();
+    if (!update) {
+      return;
+    }
+    history.redo.push(update);
+    this.update(affected, update.position, update.undo, false);
+    return update;
+  }
+
+  redo(affected: Set<string>) {
+    const { history } = this;
+    const update = history.redo.pop();
+    if (!update) {
+      return;
+    }
+    history.undo.push(update);
+    this.update(affected, update.position, update.redo, false);
+    return update;
   }
 
   wrap(position: vec3) {

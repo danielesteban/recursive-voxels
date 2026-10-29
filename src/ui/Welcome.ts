@@ -55,17 +55,24 @@ export const showWelcome = (canvas: HTMLCanvasElement) => {
     settings.appendChild(play);
   }
 
-  const controls = document.createElement('div');
-  controls.classList.add('controls');
-  content.appendChild(controls);
-  controls.appendChild(getControlsEntryKeys('Move', [['W'], ['A', 'S', 'D']]));
-  controls.appendChild(getControlsEntryKeys('Down', [['Shift']]));
-  controls.appendChild(getControlsEntryKeys('Up', [['Space']]));
-  controls.appendChild(getControlsEntryIcon('Build', MouseIcons.leftClick));
-  controls.appendChild(getControlsEntryIcon('Destroy', MouseIcons.rightClick));
-  controls.appendChild(getControlsEntryCombo('Pick', [['Ctrl']], MouseIcons.leftClick));
-  controls.appendChild(getControlsEntryKeys('Palette', [['E']]));
-  controls.appendChild(getControlsEntryIcon('Shoot', MouseIcons.middleClick));
+  const controlsA = document.createElement('div');
+  controlsA.classList.add('controls');
+  content.appendChild(controlsA);
+  controlsA.appendChild(getControlsEntryKeys('Move', [['W'], ['A', 'S', 'D']]));
+  controlsA.appendChild(getControlsEntryKeys('Down', [['Shift']]));
+  controlsA.appendChild(getControlsEntryKeys('Up', [['Space']]));
+  controlsA.appendChild(getControlsEntryIcon('Speed', MouseIcons.middleClick));
+  controlsA.appendChild(getControlsEntryKeys('Palette', [['E']]));
+
+  const controlsB = document.createElement('div');
+  controlsB.classList.add('controls');
+  content.appendChild(controlsB);
+  controlsB.appendChild(getControlsEntryIcon('Build', MouseIcons.leftClick));
+  controlsB.appendChild(getControlsEntryIcon('Destroy', MouseIcons.rightClick));
+  controlsB.appendChild(getControlsEntryIcon('Shoot', MouseIcons.middleClick));
+  controlsB.appendChild(getControlsEntryCombo('Pick', [[['Ctrl']], MouseIcons.leftClick]));
+  controlsB.appendChild(getControlsEntryCombo('Undo', [[['Ctrl']], [['Z']]]));
+  controlsB.appendChild(getControlsEntryCombo('Redo', [[['Ctrl'], ['Shift']], [['Z']]]));
 
   document.body.appendChild(overlay);
 };
@@ -127,18 +134,26 @@ const getControlsEntryIcon = (descriptionText: string, iconPath: string) => {
   return entry;
 };
 
-const getControlsEntryCombo = (descriptionText: string, keysRows: string[][], iconPath: string) => {
+const getControlsEntryCombo = (descriptionText: string, combination: (string[][] | string)[]) => {
   const entry = document.createElement('div');
   entry.classList.add('entry');
   const combo = document.createElement('div');
   combo.classList.add('combo');
   entry.appendChild(combo);
-  combo.appendChild(getControlsKeys(keysRows));
-  const combinator = document.createElement('div');
-  combinator.classList.add('combinator');
-  combinator.innerText = '+';
-  combo.appendChild(combinator);
-  combo.appendChild(getControlsIcon(iconPath));
+  for (let i = 0, l = combination.length; i < l; i++) {
+    if (i > 0) {
+      const combinator = document.createElement('div');
+      combinator.classList.add('combinator');
+      combinator.innerText = '+';
+      combo.appendChild(combinator);
+    }
+    const step = combination[i];
+    if (Array.isArray(step)) {
+      combo.appendChild(getControlsKeys(step));
+    } else {
+      combo.appendChild(getControlsIcon(step));
+    }
+  }
   const description = document.createElement('div');
   description.classList.add('description');
   description.innerText = descriptionText;

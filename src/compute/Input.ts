@@ -39,8 +39,10 @@ export class Input {
     primary: 0,
     secondary: 0,
     tertiary: 0,
-    palette: 0,
     modifier: 0,
+    palette: 0,
+    undo: 0,
+    redo: 0,
     tool1: 0,
     tool2: 0,
     tool3: 0,
@@ -87,7 +89,25 @@ export class Input {
         movement.y.unshift(1);
         break;
       case 'SHIFT':
-        movement.y.unshift(-1);
+        if (!e.ctrlKey && !e.metaKey) {
+          movement.y.unshift(-1);
+        }
+        break;
+      case 'CONTROL':
+        buttons.modifier |= ButtonState.pressed | ButtonState.down;
+        break;
+      case 'E':
+        buttons.palette |= ButtonState.pressed | ButtonState.down;
+        break;
+      case 'Z':
+        if (e.ctrlKey || e.metaKey) {
+          e.preventDefault();
+          if (e.shiftKey) {
+            buttons.redo |= ButtonState.pressed | ButtonState.down;
+          } else {
+            buttons.undo |= ButtonState.pressed | ButtonState.down;
+          }
+        }
         break;
       case '1':
         buttons.tool1 |= ButtonState.pressed | ButtonState.down;
@@ -97,12 +117,6 @@ export class Input {
         break;
       case '3':
         buttons.tool3 |= ButtonState.pressed | ButtonState.down;
-        break;
-      case 'E':
-        buttons.palette |= ButtonState.pressed | ButtonState.down;
-        break;
-      case 'CONTROL':
-        buttons.modifier |= ButtonState.pressed | ButtonState.down;
         break;
       case 'TAB':
         e.preventDefault();
@@ -125,7 +139,7 @@ export class Input {
         if (i !== -1) movement.z.splice(i, 1);
         break;
       }
-      case 'A':{
+      case 'A': {
         const i = movement.x.indexOf(-1);
         if (i !== -1) movement.x.splice(i, 1);
         break;
@@ -135,7 +149,7 @@ export class Input {
         if (i !== -1) movement.x.splice(i, 1);
         break;
       }
-      case ' ':{
+      case ' ': {
         const i = movement.y.indexOf(1);
         if (i !== -1) movement.y.splice(i, 1);
         break;
@@ -145,6 +159,24 @@ export class Input {
         if (i !== -1) movement.y.splice(i, 1);
         break;
       }
+      case 'CONTROL':
+        buttons.modifier &= ~ButtonState.pressed;
+        buttons.modifier |= ButtonState.up;
+        break;
+      case 'E':
+        buttons.palette &= ~ButtonState.pressed;
+        buttons.palette |= ButtonState.up;
+        break;
+      case 'Z':
+        if (buttons.undo & ButtonState.pressed) {
+          buttons.undo &= ~ButtonState.pressed;
+          buttons.undo |= ButtonState.up;
+        }
+        if (buttons.redo & ButtonState.pressed) {
+          buttons.redo &= ~ButtonState.pressed;
+          buttons.redo |= ButtonState.up;
+        }
+        break;
       case '1':
         buttons.tool1 &= ~ButtonState.pressed;
         buttons.tool1 |= ButtonState.up;
@@ -156,15 +188,7 @@ export class Input {
       case '3':
         buttons.tool3 &= ~ButtonState.pressed;
         buttons.tool3 |= ButtonState.up;
-        break;
-      case 'E':
-        buttons.palette &= ~ButtonState.pressed;
-        buttons.palette |= ButtonState.up;
-        break;
-      case 'CONTROL':
-        buttons.modifier &= ~ButtonState.pressed;
-        buttons.modifier |= ButtonState.up;
-        break;
+        break;      
     }
   }
 

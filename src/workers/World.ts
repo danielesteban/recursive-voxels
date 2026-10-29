@@ -49,6 +49,12 @@ export type Operation = (
     value: BlockType;
   }
   | {
+    op: 'undo';
+  }
+  | {
+    op: 'redo';
+  }
+  | {
     op: 'save';
     volume: string;
   }
@@ -172,18 +178,21 @@ Promise.all([
     } satisfies Operation);
   };
 
-  const sfxPosition = vec3.create();
   const targets = Array.from({ length: 3 * 3 * 3 }, () => vec3.create());
-  const playContactSFX = (body: ReturnType<Physics['addBody']>, force: number) => {
-    const position = body.GetPosition();
-    vec3.set(sfxPosition, position.GetX(), position.GetY(), position.GetZ());
+  const playSFX = (sfx: {
+    sound: string;
+    position: vec3;
+    volume?: number;
+    detune?: number;
+    filter?: BiquadFilterOptions;
+  }) => {
     for (let i = 0, z = -1; z <= 1; z++) {
       for (let y = -1; y <= 1; y++) {
         for (let x = -1; x <= 1; x++, i++) {
           const target = targets[i];
           vec3.set(target, x, y, z);
           vec3.multiply(target, target, VolumeSize);
-          vec3.add(target, target, sfxPosition);
+          vec3.add(target, target, sfx.position);
         }
       }
     }
@@ -192,11 +201,21 @@ Promise.all([
     targets.sort((a, b) => vec3.sqrDist(a, aux) - vec3.sqrDist(b, aux));
     postMessage({
       op: 'sfx',
-      sound: 'shot',
+      ...sfx,
       position: targets[0],
+    } satisfies Operation);
+  };
+
+  const contactSfxPosition = vec3.create();
+  const playContactSFX = (body: ReturnType<Physics['addBody']>, force: number) => {
+    const position = body.GetPosition();
+    vec3.set(contactSfxPosition, position.GetX(), position.GetY(), position.GetZ());
+    playSFX({
+      sound: 'shot',
+      position: contactSfxPosition,
       volume: (1 - Math.sqrt(1 - Math.min(force / 10000, 1))) * 0.1,
       detune: Math.random() * 2000,
-    } satisfies Operation);
+    });
   };
 
   const lastContactSFX = new Map<number, number>();
@@ -266,30 +285,52 @@ Promise.all([
         vec3.copy(player.movement, movement);
         break;
       }
-      case 'update': {
-        const { voxel, value } = data;
+      case 'update':
+      case 'undo':
+      case 'redo': {
         const affectedChunks = new Set<string>();
-        const affectedChunksPhysics = new Set<string>();
-        const chunk = vec3.create();
-        const position = vec3.create();
-        // for (let z = -1; z <= 1; z++) {
-        //   for (let y = -1; y <= 1; y++) {
-        //     for (let x = -1; x <= 1; x++) { 
-        //       volume.wrap(vec3.set(position, voxel[0] + x, voxel[1] + y, voxel[2] + z));
-              volume.wrap(vec3.set(position, voxel[0], voxel[1], voxel[2]));
-              if (volume.update(affectedChunks, position, value)) {
-                vec3.scale(chunk, position, 1 / ChunkSize);
-                vec3.floor(chunk, chunk);
-                affectedChunksPhysics.add(`${chunk[0]}:${chunk[1]}:${chunk[2]}`);
-              }
-        //     }
-        //   }
-        // }
+        let update: { position: vec3; value: number };
+        switch (data.op) {
+          case 'update': {
+            const { voxel, value } = data;
+            const position = volume.wrap(vec3.set(vec3.create(), voxel[0], voxel[1], voxel[2]));
+            if (!volume.update(affectedChunks, position, value)) {
+              return;
+            }
+            update = { position, value };
+            break;
+          }
+          case 'undo': {
+            const op = volume.undo(affectedChunks);
+            if (!op) {
+              return;
+            }
+            update = { position: op.position, value: op.undo };
+            break;
+          }
+          case 'redo': {
+            const op = volume.redo(affectedChunks);
+            if (!op) {
+              return;
+            }
+            update = { position: op.position, value: op.redo };
+            break;
+          }
+        }
+        const affectedChunk = vec3.create();
+        const updatedChunk = vec3.scale(vec3.create(), update.position, 1 / ChunkSize);
+        vec3.floor(updatedChunk, updatedChunk);
         for (const key of affectedChunks) {
           const p = key.split(':');
-          const affectedChunk = vec3.fromValues(parseInt(p[0], 10), parseInt(p[1], 10), parseInt(p[2], 10));
-          updateChunk(affectedChunk, affectedChunksPhysics.has(key));
+          vec3.set(affectedChunk, parseInt(p[0], 10), parseInt(p[1], 10), parseInt(p[2], 10));
+          updateChunk(affectedChunk, vec3.exactEquals(affectedChunk, updatedChunk));
         }
+        playSFX({
+          sound: 'build',
+          position: vec3.add(vec3.create(), update.position, vec3.fromValues(0.5, 0.5, 0.5)),
+          detune: (Math.random() - 0.5) * 1000,
+          filter: { type: update.value === BlockType.air ? 'lowpass': 'highpass', frequency: 1000 + Math.random() * 1000 },
+        });
         clearTimeout(saveTimer);
         saveTimer = setTimeout(save, 1000);
         break;
