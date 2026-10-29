@@ -329,7 +329,7 @@ Promise.all([
           sound: 'build',
           position: vec3.add(vec3.create(), update.position, vec3.fromValues(0.5, 0.5, 0.5)),
           detune: (Math.random() - 0.5) * 1000,
-          filter: { type: update.value === BlockType.air ? 'lowpass': 'highpass', frequency: 1000 + Math.random() * 1000 },
+          filter: { type: update.value !== BlockType.air ? 'lowpass': 'highpass', frequency: 1000 + Math.random() * 1000 },
         });
         clearTimeout(saveTimer);
         saveTimer = setTimeout(save, 1000);
