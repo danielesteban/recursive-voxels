@@ -59,10 +59,11 @@ export const showWelcome = (canvas: HTMLCanvasElement) => {
   controlsA.classList.add('controls');
   content.appendChild(controlsA);
   controlsA.appendChild(getControlsEntryKeys('Move', [['W'], ['A', 'S', 'D']]));
-  controlsA.appendChild(getControlsEntryKeys('Palette', [['E']]));
   controlsA.appendChild(getControlsEntryKeys('Move Down', [['Shift']]));
   controlsA.appendChild(getControlsEntryKeys('Move Up', [['Space']]));
   controlsA.appendChild(getControlsEntryIcon('Set Speed', MouseIcons.middleClick));
+  controlsA.appendChild(getControlsEntryKeys('Toggle UI', [['Tab']]));
+  controlsA.appendChild(getControlsEntryKeys('Palette', [['E']]));
 
   const controlsB = document.createElement('div');
   controlsB.classList.add('controls');
@@ -87,7 +88,7 @@ const getControlsKeys = (keysRows: string[][]) => {
     for (const keyText of keysRow) {
       const key = document.createElement('div');
       key.classList.add('key');
-      if (keyText === 'Ctrl' || keyText === 'Shift') {
+      if (keyText === 'Ctrl' || keyText === 'Shift' || keyText === 'Tab') {
         key.classList.add('shift');
       }
       if (keyText === 'Space') {
