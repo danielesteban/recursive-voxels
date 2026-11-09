@@ -3,7 +3,9 @@ import path from 'node:path';
 import url from 'node:url';
 import { defineConfig } from 'vite';
 
-const srcPath = path.join(path.dirname(url.fileURLToPath(import.meta.url)), 'src');
+const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
+const sharedPath = path.resolve(__dirname, '..', 'shared', 'src');
+const srcPath = path.resolve(__dirname, 'src');
 
 export default defineConfig(({ mode }) => ({
   build: {
@@ -15,6 +17,9 @@ export default defineConfig(({ mode }) => ({
       },
     },
   },
+  define: {
+    __SERVER__: JSON.stringify(process.env.SERVER || 'http://localhost:8081/'),
+  },
   plugins: [
     {
       name: 'shaders',
@@ -25,17 +30,19 @@ export default defineConfig(({ mode }) => ({
             map: null,
           };
         }
+        return;
       },
     }
   ],
   resolve: {
-    alias: (
-      fs.readdirSync(srcPath, { withFileTypes: true })
+    alias: [
+      { find: '@shared', replacement: sharedPath },
+      ...fs.readdirSync(srcPath, { withFileTypes: true })
         .filter((f) => f.isDirectory())
         .map(({ name }) => (
           { find: name, replacement: path.join(srcPath, name) }
-        ))
-    ),
+        )),
+    ],
   },
   server: {
     port: 8080,

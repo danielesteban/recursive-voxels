@@ -1,20 +1,20 @@
 {
-  "name": "recursive-voxels",
+  "name": "recursive-voxels-client",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "preview": "vite preview",
-    "start": "vite"
+    "dev": "vite",
+    "preview": "vite preview"
   },
   "dependencies": {
     "gl-matrix": "^3.4.4",
     "jolt-physics": "^1.1.1"
   },
   "devDependencies": {
-    "@types/node": "^26.6.5",
-    "@types/web": "^0.0.359",
+    "@types/node": "^26.6.6",
+    "@types/web": "^0.0.361",
     "typescript": "^7.0.2",
-    "vite": "^8.3.5"
+    "vite": "^8.3.6"
   }
 }

@@ -1,2 +1,4 @@
 dist
 node_modules
+shared/src/Protocol.d.ts
+shared/src/Protocol.js

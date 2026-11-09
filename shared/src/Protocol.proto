@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+message uVec3 {
+  uint32 x = 0;
+  uint32 y = 1;
+  uint32 z = 2;
+}
+
+message OpUpdate {
+  uVec3 position = 0;
+  uint32 value = 1;
+}
+
+message Operation {
+  oneof type {
+    OpUpdate update = 0;
+  }
+}
+
+message World {
+  uVec3 size = 0;
+  bytes data = 1;
+}
