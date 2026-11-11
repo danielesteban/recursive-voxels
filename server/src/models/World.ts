@@ -1,4 +1,3 @@
-
 import { model, Schema, type HydratedDocument } from 'mongoose';
 
 interface World {

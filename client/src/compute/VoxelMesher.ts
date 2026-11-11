@@ -1,6 +1,6 @@
 import { vec2, vec3 } from 'gl-matrix';
+import { BlockModel, BlockType, ChunkSize, getModel, getTexture, isCulled, isOpaque, LightColor, MaxLight } from '@shared/WorldConstants';
 import type { VoxelVolume } from 'compute/VoxelVolume';
-import { BlockModel, BlockType, ChunkSize, getModel, getTexture, isCulled, isOpaque, LightColor, MaxLight } from 'compute/WorldConstants';
 import { type Face, Models } from 'compute/VoxelModels';
 
 const maxVoxelCount = (ChunkSize ** 3) / 2;

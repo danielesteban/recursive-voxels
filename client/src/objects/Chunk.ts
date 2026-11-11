@@ -1,7 +1,7 @@
 import { mat4, vec3 } from 'gl-matrix';
+import { BlockTexture, ChunkSize } from '@shared/WorldConstants';
 import type { Intersection, Ray } from 'compute/Raycaster';
 import type { RecursiveInstances } from 'compute/RecursiveInstances';
-import { BlockTexture, ChunkSize } from 'compute/WorldConstants';
 import { Sphere } from 'math/Sphere';
 import { ChunkGeometry } from 'objects/ChunkGeometry';
 import ChunkMaterialCode from 'objects/ChunkMaterial.wgsl';

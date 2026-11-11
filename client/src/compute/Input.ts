@@ -283,6 +283,11 @@ export class Input {
     );
   }
 
+  getDirection() {
+    const { camera } = this;
+    return camera.direction;
+  }
+
   private static readonly aux2 = vec3.create();
   private static readonly aux3 = vec3.create();
   getMovement() {

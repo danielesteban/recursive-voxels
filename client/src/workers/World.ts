@@ -1,20 +1,24 @@
 import { vec3 } from 'gl-matrix';
+import { BlockType, ChunkSize, type Generator } from '@shared/WorldConstants';
 import { Physics, PhysicsLayer } from 'compute/Physics';
 import { VoxelMesher } from 'compute/VoxelMesher';
 import { VoxelPhysics } from 'compute/VoxelPhysics';
 import { VoxelVolume } from 'compute/VoxelVolume';
-import { BlockType, ChunkSize } from 'compute/WorldConstants';
+import { Server } from 'compute/WorldServer';
 
 export type Config = {
   data?: string;
   generator?: string;
-  size: vec3;
+  server?: string;
+  size?: vec3;
 };
 
-export type Generator = (
-  (blockType: typeof BlockType, size: vec3) =>
-    (x: number, y: number, z: number) => number
-);
+export type Init = {
+  config?: {
+    size: vec3;
+  };
+  error?: string;
+};
 
 export type Operation = (
   {
@@ -36,11 +40,22 @@ export type Operation = (
     position: vec3;
   }
   | {
+    op: 'peer';
+    id: string;
+    position: vec3;
+    direction: vec3;
+  }
+  | {
+    op: 'peerDisconnected';
+    id: string;
+  }
+  | {
     op: 'player';
     position: vec3;
   }
   | {
     op: 'playerMovement';
+    direction: vec3;
     movement: vec3;
   }
   | {
@@ -66,27 +81,62 @@ export type Operation = (
     detune?: number;
     filter?: BiquadFilterOptions;
   }
+  | {
+    op: 'pauseSimulation';
+  }
+  | {
+    op: 'resumeSimulation';
+  }
+  | {
+    op: 'disconnected';
+  }
 );
 
 Promise.all([
   Physics.create(),
-  new Promise<VoxelVolume>((resolve) => {
+  new Promise<{ server?: Server, volume: VoxelVolume }>((resolve, reject) => {
     self.onmessage = async ({ data: config }: { data: Config }) => {
       self.onmessage = null;
-      const volume = new VoxelVolume(config.size);
-      if (config.data) {
-        await volume.load(config.data);
+      try {
+        let data: Uint8Array | string | undefined;
+        let size: vec3 = config.size || vec3.scale(vec3.create(), vec3.fromValues(4, 4, 4), ChunkSize);
+        let server: Server | undefined;
+        if (config.data) {
+          data = config.data;
+        }
+        if (config.server) {
+          server = new Server();
+          try {
+            const world = await server.connect(`world/${config.server}`);
+            data = world.data;
+            size = vec3.fromValues(world.size!.x!, world.size!.y!, world.size!.z!);
+          } catch (e) {
+            reject(e);
+            return;
+          }
+        }
+        const volume = new VoxelVolume(size);
+        if (data instanceof Uint8Array) {
+          await volume.load(data);
+        }
+        if (typeof data === 'string') {
+          await volume.loadEncoded(data);
+        }
+        if (config.generator) {
+          volume.generate(
+            (new Function(`return ${config.generator}`)() as Generator)(BlockType, size as [number, number, number])
+          );
+        }
+        resolve({ server, volume });
+      } catch (e) {
+        reject(e);
       }
-      if (config.generator) {
-        volume.generate(
-          (new Function(`return ${config.generator}`)() as Generator)(BlockType, config.size)
-        );
-      }
-      resolve(volume);
     };
   }),
 ])
-.then(([physics, volume]) => {
+.then(([physics, { server, volume }]) => {
+  const simulationRate = 1000 / 60; 
+
   const VolumeSize = volume.getSize();
   const VolumeChunks = vec3.scale(vec3.create(), VolumeSize, 1 / ChunkSize);
 
@@ -105,6 +155,7 @@ Promise.all([
       position: vec3.create(),
       shape: physics.getShape({ type: 'sphere', radius: 0.5 }),
     }),
+    direction: vec3.fromValues(0, 0, -1),
     movement: vec3.create(),
     velocity: vec3.create(),
   };
@@ -154,6 +205,32 @@ Promise.all([
     shape.Release();
   };
 
+  const onUpdate = (affectedChunks: Set<string>, update: { position: vec3; value: number }) => {
+    const affectedChunk = vec3.create();
+    const updatedChunk = vec3.scale(vec3.create(), update.position, 1 / ChunkSize);
+    vec3.floor(updatedChunk, updatedChunk);
+    for (const key of affectedChunks) {
+      const p = key.split(':');
+      vec3.set(affectedChunk, parseInt(p[0], 10), parseInt(p[1], 10), parseInt(p[2], 10));
+      updateChunk(affectedChunk, vec3.exactEquals(affectedChunk, updatedChunk));
+    }
+    playSFX({
+      sound: 'build',
+      position: vec3.add(vec3.create(), update.position, vec3.fromValues(0.5, 0.5, 0.5)),
+      detune: (Math.random() - 0.5) * 1000,
+      filter: { type: update.value !== BlockType.air ? 'lowpass': 'highpass', frequency: 1000 + Math.random() * 1000 },
+    });
+  };
+
+  let saveTimer = 0;
+  const save = async () => {
+    const data = await volume.save();
+    postMessage({
+      op: 'save',
+      volume: data,
+    } satisfies Operation);
+  };
+
   const aux = vec3.create();
   const wrapBody = (body: ReturnType<Physics['addBody']>) => {
     const pos = body.GetPosition();
@@ -167,15 +244,6 @@ Promise.all([
     while (aux[2] >= VolumeSize[2]) { aux[2] -= VolumeSize[2]; update = true; }
     if (update) physics.setBodyPosition(body, aux);
     return aux;
-  };
-
-  let saveTimer = 0;
-  const save = async () => {
-    const data = await volume.save();
-    postMessage({
-      op: 'save',
-      volume: data,
-    } satisfies Operation);
   };
 
   const targets = Array.from({ length: 3 * 3 * 3 }, () => vec3.create());
@@ -245,101 +313,8 @@ Promise.all([
     body2.IsDynamic() && lastContactSFX.set(body2.GetID().GetIndexAndSequenceNumber(), time);
   });
 
-  for (let z = 0; z < VolumeChunks[2]; z++) {
-    for (let y = 0; y < VolumeChunks[1]; y++) {
-      for (let x = 0; x < VolumeChunks[0]; x++) {
-        updateChunk(vec3.fromValues(x, y, z), true);
-      }
-    }
-  }
-
-  let ballId = 0;
-  self.onmessage = ({ data }: { data: Operation }) => {
-    switch (data.op) {
-      case 'ball': {
-        const { position, impulse } = data;
-        volume.wrap(position);
-        let body = ballBodies.get(ballId);
-        if (body) {
-          physics.setBodyPosition(body, position, true);
-        } else {
-          body = physics.addBody({
-            allowSleeping: false,
-            layer: PhysicsLayer.dynamic,
-            position,
-            shape: physics.getShape({ type: 'sphere', radius: 0.5 }),
-          });
-          ballBodies.set(ballId, body);
-        }
-        physics.addBodyImpulse(body, impulse);
-        ballId = (ballId + 1) % 32;
-        break;
-      }
-      case 'balls': {
-        const { buffer } = data;
-        ballsBuffer = new Float32Array(buffer.buffer, 0, maxBalls * 4);
-        break;
-      }
-      case 'playerMovement': {
-        const { movement } = data;
-        vec3.copy(player.movement, movement);
-        break;
-      }
-      case 'update':
-      case 'undo':
-      case 'redo': {
-        const affectedChunks = new Set<string>();
-        let update: { position: vec3; value: number };
-        switch (data.op) {
-          case 'update': {
-            const { voxel, value } = data;
-            const position = volume.wrap(vec3.set(vec3.create(), voxel[0], voxel[1], voxel[2]));
-            if (!volume.update(affectedChunks, position, value)) {
-              return;
-            }
-            update = { position, value };
-            break;
-          }
-          case 'undo': {
-            const op = volume.undo(affectedChunks);
-            if (!op) {
-              return;
-            }
-            update = { position: op.position, value: op.undo };
-            break;
-          }
-          case 'redo': {
-            const op = volume.redo(affectedChunks);
-            if (!op) {
-              return;
-            }
-            update = { position: op.position, value: op.redo };
-            break;
-          }
-        }
-        const affectedChunk = vec3.create();
-        const updatedChunk = vec3.scale(vec3.create(), update.position, 1 / ChunkSize);
-        vec3.floor(updatedChunk, updatedChunk);
-        for (const key of affectedChunks) {
-          const p = key.split(':');
-          vec3.set(affectedChunk, parseInt(p[0], 10), parseInt(p[1], 10), parseInt(p[2], 10));
-          updateChunk(affectedChunk, vec3.exactEquals(affectedChunk, updatedChunk));
-        }
-        playSFX({
-          sound: 'build',
-          position: vec3.add(vec3.create(), update.position, vec3.fromValues(0.5, 0.5, 0.5)),
-          detune: (Math.random() - 0.5) * 1000,
-          filter: { type: update.value !== BlockType.air ? 'lowpass': 'highpass', frequency: 1000 + Math.random() * 1000 },
-        });
-        clearTimeout(saveTimer);
-        saveTimer = setTimeout(save, 1000);
-        break;
-      }
-    }
-  };
-
   let lastTick = performance.now() / 1000;
-  setInterval(() => {
+  const simulate = () => {
     const time = performance.now() / 1000;
     const delta = Math.min(time - lastTick, 1 / 30);
     lastTick = time;
@@ -377,6 +352,181 @@ Promise.all([
         op: 'player',
         position,
       } satisfies Operation);
+      server?.send({
+        peer: {
+          position: {
+            x: position[0],
+            y: position[1],
+            z: position[2],
+          },
+          direction: {
+            x: player.direction[0],
+            y: player.direction[1],
+            z: player.direction[2],
+          },
+        },
+      });
     }
-  }, 1000 / 60);
+  };
+
+  let ballId = 0;
+  self.onmessage = ({ data }: { data: Operation }) => {
+    switch (data.op) {
+      case 'ball': {
+        const { position, impulse } = data;
+        volume.wrap(position);
+        let body = ballBodies.get(ballId);
+        if (body) {
+          physics.setBodyPosition(body, position, true);
+        } else {
+          body = physics.addBody({
+            allowSleeping: false,
+            layer: PhysicsLayer.dynamic,
+            position,
+            shape: physics.getShape({ type: 'sphere', radius: 0.5 }),
+          });
+          ballBodies.set(ballId, body);
+        }
+        physics.addBodyImpulse(body, impulse);
+        ballId = (ballId + 1) % 32;
+        break;
+      }
+      case 'balls': {
+        const { buffer } = data;
+        ballsBuffer = new Float32Array(buffer.buffer, 0, maxBalls * 4);
+        break;
+      }
+      case 'playerMovement': {
+        const { direction, movement } = data;
+        vec3.copy(player.direction, direction);
+        vec3.copy(player.movement, movement);
+        break;
+      }
+      case 'update':
+      case 'undo':
+      case 'redo': {
+        const affectedChunks = new Set<string>();
+        let update: { position: vec3; value: number };
+        switch (data.op) {
+          case 'update': {
+            const { voxel, value } = data;
+            const position = volume.wrap(vec3.set(vec3.create(), voxel[0], voxel[1], voxel[2]));
+            if (!volume.update(affectedChunks, position, value)) {
+              return;
+            }
+            update = { position, value };
+            break;
+          }
+          case 'undo': {
+            const op = volume.undo(affectedChunks);
+            if (!op) {
+              return;
+            }
+            update = { position: op.position, value: op.undo };
+            break;
+          }
+          case 'redo': {
+            const op = volume.redo(affectedChunks);
+            if (!op) {
+              return;
+            }
+            update = { position: op.position, value: op.redo };
+            break;
+          }
+        }
+        onUpdate(affectedChunks, update);
+        if (server) {
+          server.send({
+            update: {
+              position: {
+                x: update.position[0],
+                y: update.position[1],
+                z: update.position[2],
+              },
+              value: update.value,
+            },
+          });
+          return;
+        }
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(save, 1000);
+        break;
+      }
+      case 'pauseSimulation':
+        clearInterval(simulationInterval);
+        break;
+      case 'resumeSimulation':
+        clearInterval(simulationInterval);
+        simulationInterval = setInterval(simulate, simulationRate);
+        break;
+    }
+  };
+
+  server?.setOnDisconnect(() => {
+    postMessage({
+      op: 'disconnected',
+    } satisfies Operation);
+  });
+
+  server?.setOnOperation((op) => {
+    switch(op.type) {
+      case 'peer': {
+        if (!op.peer!.position || !op.peer!.direction) {
+          postMessage({
+            op: 'peerDisconnected',
+            id: op.peer!.id!,
+          } satisfies Operation);
+          return;
+        }
+        postMessage({
+          op: 'peer',
+          id: op.peer!.id!,
+          position: vec3.fromValues(
+            op.peer!.position!.x!,
+            op.peer!.position!.y!,
+            op.peer!.position!.z!
+          ),
+          direction: vec3.fromValues(
+            op.peer!.direction!.x!,
+            op.peer!.direction!.y!,
+            op.peer!.direction!.z!
+          ),
+        } satisfies Operation);
+        break;
+      }
+      case 'update': {
+        const affectedChunks = new Set<string>();
+        const position = vec3.fromValues(
+          op.update!.position!.x!,
+          op.update!.position!.y!,
+          op.update!.position!.z!
+        );
+        const value = op.update!.value!;
+        if (!volume.update(affectedChunks, position, value, false)) {
+          return;
+        }
+        onUpdate(affectedChunks, { position, value });
+        break;
+      }
+    }
+  });
+
+  postMessage({
+    config: { size: VolumeSize },
+  } satisfies Init);
+
+  for (let z = 0; z < VolumeChunks[2]; z++) {
+    for (let y = 0; y < VolumeChunks[1]; y++) {
+      for (let x = 0; x < VolumeChunks[0]; x++) {
+        updateChunk(vec3.fromValues(x, y, z), true);
+      }
+    }
+  }
+
+  let simulationInterval = setInterval(simulate, simulationRate);
+})
+.catch((e: Error) => {
+  postMessage({
+    error: e.message,
+  } satisfies Init);
 });

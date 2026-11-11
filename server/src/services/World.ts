@@ -1,17 +1,26 @@
-import { badRequest, notFound } from '@hapi/boom';
-import { type NextFunction, type Request } from 'express';
-import { matchedData } from 'express-validator';
+import { notFound } from '@hapi/boom';
+import { type NextFunction, type Request, type Response } from 'express';
+import { matchedData, param } from 'express-validator';
 import { v4 as uuid } from 'uuid';
-import validator from 'validator';
 import { type WebSocket } from 'ws';
 import { Operation, World as WorldMessage } from '@shared/Protocol';
+import { BlockType, type Generator } from '@shared/WorldConstants';
+import { GeneratorEscher } from '@shared/WorldGeneration';
+import { checkValidationResult } from 'core/ErrorHandler';
 import { World as WorldModel } from 'models';
 
 class World {
   private readonly id: string;
   private data: Uint8Array = null!;
   private loading?: Promise<void>;
-  private readonly peers: (WebSocket & { id: string; isAlive: boolean; })[] = [];
+  private readonly peers: (
+    WebSocket
+    & {
+      id: string;
+      isAlive: boolean;
+      position: { x: number; y: number; z: number };
+      direction: { x: number; y: number; z: number };
+    })[] = [];
   private saveTimer?: NodeJS.Timeout;
   private saving?: Promise<void>;
   private size: { x: number; y: number; z: number } = { x: 0, y: 0, z: 0 };
@@ -32,7 +41,7 @@ class World {
           if (!world) {
             throw notFound();
           }
-          this.data = world.data;
+          this.data = new Uint8Array(world.data.buffer);
           this.size = world.size;
           delete this.loading;
         });
@@ -45,19 +54,48 @@ class World {
     const peer = ws as unknown as typeof this.peers[0];
     peer.id = uuid();
     peer.isAlive = true;
+    peer.position = { x: 0, y: 0, z: 0 };
+    peer.direction = { x: 0, y: 0, z: -1 };
     peer.once('close', () => {
       const index = peers.findIndex(({ id }) => (id === peer.id));
       if (index !== -1) {
         peers.splice(index, 1);
       }
+      for (const p of peers) {
+        p.send(Operation.encode({ peer: { id: peer.id } }).finish());
+      }
     });
-    peer.on('message', (buffer) => {
+    peer.on('message', (buffer: Buffer) => {
       if (!(buffer instanceof Buffer)) {
         return;
       }
       try {
         const op = Operation.decode(new Uint8Array(buffer));
         switch (op.type) {
+          case 'peer': {
+            const { position, direction } = op.peer;
+            if (
+              !position
+              || typeof position.x !== 'number'
+              || typeof position.y !== 'number'
+              || typeof position.z !== 'number'
+              || !direction
+              || typeof direction.x !== 'number'
+              || typeof direction.y !== 'number'
+              || typeof direction.z !== 'number'
+            ) {
+              throw new Error('Invalid peer update');
+            }
+            op.peer.id = peer.id;
+            peer.position.x = position.x;
+            peer.position.y = position.y;
+            peer.position.z = position.z;
+            peer.direction.x = direction.x;
+            peer.direction.y = direction.y;
+            peer.direction.z = direction.z;
+            buffer = Operation.encode(op).finish() as Buffer;
+            break;
+          }
           case 'update': {
             const { position, value } = op.update;
             if (
@@ -100,6 +138,10 @@ class World {
     // @dani @incomplete
     // Compress the data before sending it to the client
     peer.send(WorldMessage.encode({ data, size }).finish());
+    for (const p of peers) {
+      p.send(Operation.encode({ peer: { id: peer.id, position: peer.position, direction: peer.direction } }).finish());
+      peer.send(Operation.encode({ peer: { id: p.id, position: p.position, direction: p.direction } }).finish());
+    }
     peers.push(peer);
   }
 
@@ -186,13 +228,18 @@ export const saveWorlds = async () => {
   }
 };
 
+const wsToReq = (cb: (req: Request, res: Response, next: NextFunction) => void) => (_ws: WebSocket, req: Request, next: NextFunction) => (
+  cb(req, null!, next)
+);
+
 export const connect = [
+  wsToReq(
+    param('id')
+      .isMongoId()
+  ),
+  wsToReq(checkValidationResult),
   async (ws: WebSocket, req: Request, next: NextFunction) => {
     const { id } = matchedData<{ id: string }>(req);
-    if (!validator.isMongoId(id)) {
-      next(badRequest());
-      return;
-    }
     let world = worlds.get(id);
     if (!world) {
       world = new World(id);
@@ -215,10 +262,14 @@ WorldModel.countDocuments().then((count) => {
 
   const size = { x: 64, y: 64, z: 64 };
   const data = new Uint8Array(size.x * size.y * size.z);
-
-  // @dani @hack
-  const origin = { x: size.x * 0.5, y: size.y * 0.5, z: size.z * 0.5 };
-  data[origin.z * size.y * size.x + origin.y * size.x + origin.x] = 128;
+  const generator = (new Function(`return ${GeneratorEscher}`)() as Generator)(BlockType, [size.x, size.y, size.z]);
+  for (let i = 0, z = 0; z < size.z; z++) {
+    for (let y = 0; y < size.y; y++) {
+      for (let x = 0; x < size.x; x++, i++) {
+        data[i] = generator(x, y, z);
+      }
+    }
+  }
 
   WorldModel.create({
     _id: '6af11800c420506757d047dd',

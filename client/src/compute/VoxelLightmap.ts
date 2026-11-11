@@ -1,5 +1,5 @@
 import { vec3 } from 'gl-matrix';
-import { ChunkSize } from 'compute/WorldConstants';
+import { ChunkSize } from '@shared/WorldConstants';
 import type { Renderer } from 'render/Renderer';
 
 export class VoxelLightmap {

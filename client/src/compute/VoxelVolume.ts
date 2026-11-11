@@ -1,5 +1,5 @@
 import { vec3 } from 'gl-matrix';
-import { BlockType, ChunkSize, isLight, isOpaque, MaxLight } from 'compute/WorldConstants';
+import { BlockType, ChunkSize, isLight, isOpaque, MaxLight } from '@shared/WorldConstants';
 
 export class VoxelVolume {
   private static readonly lightNeighbors: vec3[] = [
@@ -58,7 +58,31 @@ export class VoxelVolume {
     this.floodLight(new Set(), lightQueue);
   }
   
-  async load(encoded: string) {
+  // @dani @incomplete
+  // This should prolly be the same
+  // regardless of it's encoded or not.
+  // But for that it should be encoded just with zLib
+  // Instead of the PNG encoding.
+  async load(buffer: Uint8Array) {
+    const { data, size } = this;
+    const lightQueue: Int16Array[] = [];
+    for (let i = 0, z = 0; z < size[2]; z++) {
+      for (let y = 0; y < size[1]; y++) {
+        for (let x = 0; x < size[0]; x++, i++) {
+          const value = buffer[i];
+          const voxel = new Uint8Array(data, i * 2, 2);
+          voxel[0] = value;
+          if (isLight(value)) {
+            voxel[1] = MaxLight;
+            lightQueue.push(new Int16Array([x, y, z]));
+          }
+        }
+      }
+    }
+    this.floodLight(new Set(), lightQueue);
+  }
+
+  async loadEncoded(encoded: string) {
     const { data, encoder, size } = this;
     const res = await fetch(`data:image/png;base64,` + encoded);
     const blob = await res.blob();

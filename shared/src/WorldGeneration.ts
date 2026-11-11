@@ -1,8 +1,6 @@
-import type { vec3 } from 'gl-matrix';
-import type { BlockType as BlockTypeType } from 'compute/WorldConstants';
-import type { Generator } from 'workers/World';
+import type { BlockType as BlockTypeType, Generator } from 'WorldConstants';
 
-export const GeneratorDefault = (((BlockType: typeof BlockTypeType, size: vec3) => {
+export const GeneratorDefault = (((BlockType: typeof BlockTypeType, size: [number, number, number]) => {
   const center = new Float32Array([size[0] * 0.5, size[1] * 0.5, size[2] * 0.5]);
   const radiusSQ = Math.min(center[0], center[1], center[2]) ** 2;
   const holeSQ = (Math.min(size[0], size[1], size[2]) / 4) ** 2;
@@ -30,7 +28,7 @@ export const GeneratorDefault = (((BlockType: typeof BlockTypeType, size: vec3) 
   };
 }) satisfies Generator).toString();
 
-export const GeneratorEscher = (((BlockType: typeof BlockTypeType, size: vec3) => {
+export const GeneratorEscher = (((BlockType: typeof BlockTypeType, size: [number, number, number]) => {
   const center = new Float32Array([size[0] * 0.5, size[1] * 0.5, size[2] * 0.5]);
   return (x: number, y: number, z: number) => {
     x -= center[0] - 0.5;

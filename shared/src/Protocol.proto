@@ -1,9 +1,21 @@
 syntax = "proto3";
 
+message Vec3 {
+  float x = 0;
+  float y = 1;
+  float z = 2;
+}
+
 message uVec3 {
   uint32 x = 0;
   uint32 y = 1;
   uint32 z = 2;
+}
+
+message OpPeer {
+  string id = 0;
+  Vec3 position = 1;
+  Vec3 direction = 2;
 }
 
 message OpUpdate {
@@ -13,7 +25,8 @@ message OpUpdate {
 
 message Operation {
   oneof type {
-    OpUpdate update = 0;
+    OpPeer peer = 0;
+    OpUpdate update = 1;
   }
 }
 

@@ -1,6 +1,6 @@
 import { vec3 } from 'gl-matrix';
+import { ChunkSize, isOpaque } from '@shared/WorldConstants';
 import type { VoxelVolume } from 'compute/VoxelVolume';
-import { ChunkSize, isOpaque } from 'compute/WorldConstants';
 
 const maxBoxesCount = (ChunkSize ** 3) / 2;
 

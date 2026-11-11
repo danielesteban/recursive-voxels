@@ -17,7 +17,7 @@ Promise.all([
   HDR(Environment),
   Renderer.create(canvas),
 ])
-.then(([environment, renderer]) => {
+.then(async ([environment, renderer]) => {
   renderer.setEnvironment(environment);
 
   let clock: number;
@@ -57,8 +57,10 @@ Promise.all([
     if (document.visibilityState === 'visible') {
       clock = performance.now() / 1000;
       frame = requestAnimationFrame(onFrame);
+      world.resumeSimulation();
     } else {
       cancelAnimationFrame(frame);
+      world.pauseSimulation();
     }
   };
 
@@ -70,6 +72,12 @@ Promise.all([
   clock = performance.now() / 1000;
   frame = requestAnimationFrame(onFrame);
 
+  await world.init(
+    location.hash.substring(1) === '/multiplayer' ? (
+      '6af11800c420506757d047dd'
+    ) : (
+      undefined
+    ));
   showWelcome(renderer.getCanvas());
 }).catch((e: Error) => {
   const error = document.getElementById('error')!;

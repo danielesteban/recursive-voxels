@@ -119,3 +119,8 @@ export const isOpaque = (value: BlockType) => {
       return true;
   }
 };
+
+export type Generator = (
+  (blockType: typeof BlockType, size: [number, number, number]) =>
+    (x: number, y: number, z: number) => number
+);

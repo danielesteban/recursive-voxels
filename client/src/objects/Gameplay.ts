@@ -1,7 +1,7 @@
 import { mat3, mat4, quat, vec3 } from 'gl-matrix';
+import { BlockType } from '@shared/WorldConstants';
 import { type Input, ButtonState } from 'compute/Input';
 import { Raycaster } from 'compute/Raycaster';
-import { BlockType } from 'compute/WorldConstants';
 import type { Palette } from 'objects/Palette';
 import type { World } from 'objects/World';
 import { Camera } from 'render/Camera';
@@ -126,7 +126,7 @@ export class Gameplay {
     if (movement[0] || movement[1] || movement[2]) {
       palette.visible = false;
     }
-    world.setPlayerMovement(movement);
+    world.setPlayerMovement(input.getDirection(), movement);
   }
 
   private build(isRemoving: boolean) {

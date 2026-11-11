@@ -1,5 +1,5 @@
 import { mat3, mat4, quat, vec2, vec3 } from 'gl-matrix';
-import { BlockModel } from 'compute/WorldConstants';
+import { BlockModel } from '@shared/WorldConstants';
 import { Plane } from 'render/Primitives';
 
 export type Face = {
