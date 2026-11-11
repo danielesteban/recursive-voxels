@@ -117,8 +117,13 @@ export class Player extends Mesh {
     return Player.texture;
   }
 
-  private readonly instances: RecursiveInstances;
   private readonly _direction = vec3.create();
+  private readonly instances: RecursiveInstances;
+  private readonly faceTexture: {
+    cpu: Uint32Array;
+    gpu: GPUBuffer;
+    timer: number;
+  };
   private readonly targetTransform: {
     position: vec3;
     direction: vec3;
@@ -131,7 +136,12 @@ export class Player extends Mesh {
     position: vec3,
     direction: vec3
   ) {
+    const device = renderer.getDevice();
     const samplers = Player.getSamplers(renderer);
+    const faceTexture = device.createBuffer({
+      size: 4,
+      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
+    });
     super(
       renderer,
       Player.getGeometry(renderer),
@@ -140,44 +150,53 @@ export class Player extends Mesh {
         entries: [
           {
             binding: 0,
-            resource: Player.getTexture(renderer).createView({ dimension: '2d-array' }),
+            resource: faceTexture,
           },
           {
             binding: 1,
-            resource: samplers.texture,
+            resource: Player.getTexture(renderer).createView({ dimension: '2d-array' }),
           },
           {
             binding: 2,
-            resource: lightmap.getData(),
+            resource: samplers.texture,
           },
           {
             binding: 3,
-            resource: samplers.lightmap,
+            resource: lightmap.getData(),
           },
           {
             binding: 4,
-            resource: lightmap.getSize(),
+            resource: samplers.lightmap,
           },
           {
             binding: 5,
-            resource: renderer.getTexture('BRDF').createView(),
+            resource: lightmap.getSize(),
           },
           {
             binding: 6,
-            resource: renderer.getTexture('Irradiance').createView({ dimension: 'cube' }),
+            resource: renderer.getTexture('BRDF').createView(),
           },
           {
             binding: 7,
-            resource: renderer.getTexture('Prefiltered').createView({ dimension: 'cube' }),
+            resource: renderer.getTexture('Irradiance').createView({ dimension: 'cube' }),
           },
           {
             binding: 8,
+            resource: renderer.getTexture('Prefiltered').createView({ dimension: 'cube' }),
+          },
+          {
+            binding: 9,
             resource: samplers.lighting,
           },
         ],
       }],
     );
     this.instances = instances;
+    this.faceTexture = {
+      cpu: new Uint32Array(1),
+      gpu: faceTexture,
+      timer: (performance.now() / 1000) + Math.random(),
+    };
     this.targetTransform = { position, direction };
     this.frustumCulled = false;
     this.renderOrder = 1;
@@ -205,17 +224,22 @@ export class Player extends Mesh {
 
   private static readonly aux6 = vec3.create();
   override animate(delta: number, time: number) {
-    const { position, direction, targetTransform } = this;
+    const { direction, faceTexture, position, renderer, targetTransform } = this;
     const { aux6: aux } = Player;
     const damp = Math.exp(-20 * delta);
-    if (!vec3.equals(position, targetTransform.position)) {
-      this.position = vec3.lerp(aux, position, targetTransform.position, damp);
-    }
     if (!vec3.equals(direction, targetTransform.direction)) {
       // @dani @incomplete
       // This should prolly be a slerp
       // But I dunno why I get NaN values if I do that
       this.direction = vec3.lerp(aux, direction, targetTransform.direction, damp);
+    }
+    if (!vec3.equals(position, targetTransform.position)) {
+      this.position = vec3.lerp(aux, position, targetTransform.position, damp);
+    }
+    if (time > faceTexture.timer) {
+      faceTexture.timer = time + 0.1 + Math.random() * 0.9;
+      faceTexture.cpu[0] = (faceTexture.cpu[0] + 1) % 2;
+      renderer.getDevice().queue.writeBuffer(faceTexture.gpu, 0, faceTexture.cpu);
     }
     super.animate(delta, time);
   }

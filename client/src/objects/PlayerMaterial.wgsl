@@ -1,14 +1,15 @@
 @group(0) @binding(0) var<uniform> camera: Camera;
 @group(0) @binding(1) var<uniform> transform: Transform;
-@group(1) @binding(0) var playerTexture: texture_2d_array<f32>;
-@group(1) @binding(1) var textureSampler: sampler;
-@group(1) @binding(2) var lightmapTexture: texture_3d<f32>;
-@group(1) @binding(3) var lightmapSampler: sampler;
-@group(1) @binding(4) var<uniform> lightmapSize: vec3f;
-@group(1) @binding(5) var brdfTexture: texture_2d<f32>;
-@group(1) @binding(6) var irradianceTexture: texture_cube<f32>;
-@group(1) @binding(7) var prefilteredTexture: texture_cube<f32>;
-@group(1) @binding(8) var lightingSampler: sampler;
+@group(1) @binding(0) var<uniform> faceTexture: u32;
+@group(1) @binding(1) var playerTexture: texture_2d_array<f32>;
+@group(1) @binding(2) var textureSampler: sampler;
+@group(1) @binding(3) var lightmapTexture: texture_3d<f32>;
+@group(1) @binding(4) var lightmapSampler: sampler;
+@group(1) @binding(5) var<uniform> lightmapSize: vec3f;
+@group(1) @binding(6) var brdfTexture: texture_2d<f32>;
+@group(1) @binding(7) var irradianceTexture: texture_cube<f32>;
+@group(1) @binding(8) var prefilteredTexture: texture_cube<f32>;
+@group(1) @binding(9) var lightingSampler: sampler;
 
 struct VertexInput {
   @location(0) position: vec3f,
@@ -44,7 +45,7 @@ fn vert_main(vertex: VertexInput) -> VertexOutput {
   var output: VertexOutput;
   output.worldPos = (transform.matrix * vec4f(vertex.position, 1.0)).xyz + vertex.instance;
   output.position = camera.projection * camera.view * vec4f(output.worldPos, 1.0);
-  output.texture = vertex.texture * 4;
+  output.texture = select(0, 1 + faceTexture, vertex.texture == 1);
   output.uv = vec2f(vertex.uv.x, 1.0 - vertex.uv.y);
   output.normal = transform.normal * vertex.normal;
   return output;
