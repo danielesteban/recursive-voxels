@@ -226,15 +226,14 @@ export class Player extends Mesh {
   override animate(delta: number, time: number) {
     const { direction, faceTexture, position, renderer, targetTransform } = this;
     const { aux6: aux } = Player;
-    const damp = Math.exp(-20 * delta);
     if (!vec3.equals(direction, targetTransform.direction)) {
       // @dani @incomplete
       // This should prolly be a slerp
       // But I dunno why I get NaN values if I do that
-      this.direction = vec3.lerp(aux, direction, targetTransform.direction, damp);
+      this.direction = vec3.lerp(aux, direction, targetTransform.direction, Math.exp(-20 * delta));
     }
     if (!vec3.equals(position, targetTransform.position)) {
-      this.position = vec3.lerp(aux, position, targetTransform.position, damp);
+      this.position = vec3.lerp(aux, position, targetTransform.position, Math.exp(-40 * delta));
     }
     if (time > faceTexture.timer) {
       faceTexture.timer = time + 0.1 + Math.random() * 0.9;
