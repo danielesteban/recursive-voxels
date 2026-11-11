@@ -181,6 +181,7 @@ export class Player extends Mesh {
     this.targetTransform = { position, direction };
     this.frustumCulled = false;
     this.renderOrder = 1;
+    this.scale = vec3.fromValues(0.7, 0.7, 0.7);
     this.position = position;
     this.direction = direction;
   }
