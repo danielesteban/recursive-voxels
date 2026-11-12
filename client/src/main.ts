@@ -6,12 +6,15 @@ import { Palette } from 'objects/Palette';
 import { World } from 'objects/World';
 import { Renderer } from 'render/Renderer';
 import Environment from 'textures/citrus_orchard_road_puresky_2k.jpg';
-import { FPS } from 'ui/FPS';
-import { Toolbar } from 'ui/Toolbar';
-import { showWelcome } from 'ui/Welcome';
+import { FPS } from 'ui/state/FPS.svelte';
+import { Status } from 'ui/state/Status.svelte';
+import { Welcome } from 'ui/state/Welcome.svelte';
+import { mountUI } from 'ui/UI';
 
 const app = document.getElementById('app')!;
 const canvas = document.createElement('canvas');
+
+mountUI(document.getElementById('ui')!);
 
 Promise.all([
   HDR(Environment),
@@ -23,12 +26,10 @@ Promise.all([
   let clock: number;
   let frame: number;
 
-  const fps = new FPS();
-  const toolbar = new Toolbar();
   const input = new Input(renderer);
   const palette = new Palette(renderer);
   const world = new World(renderer);
-  const gameplay = new Gameplay(renderer, input, palette, toolbar, world);
+  const gameplay = new Gameplay(renderer, input, palette, world);
 
   renderer
     .addObject(world)
@@ -41,7 +42,7 @@ Promise.all([
     const time = performance.now() / 1000;
     const delta = Math.min(time - clock, 1 / 30);
     clock = time;
-    fps.update(time);
+    FPS.update(time);
     input.update(delta, world.getPlayer(), world.getSize());
 
     renderer
@@ -57,6 +58,7 @@ Promise.all([
     if (document.visibilityState === 'visible') {
       clock = performance.now() / 1000;
       frame = requestAnimationFrame(onFrame);
+      FPS.reset();
       world.resumeSimulation();
     } else {
       cancelAnimationFrame(frame);
@@ -71,6 +73,7 @@ Promise.all([
 
   clock = performance.now() / 1000;
   frame = requestAnimationFrame(onFrame);
+  FPS.reset();
 
   await world.init(
     location.hash.substring(1) === '/multiplayer' ? (
@@ -78,11 +81,12 @@ Promise.all([
     ) : (
       undefined
     ));
-  showWelcome(renderer.getCanvas());
+
+  Welcome.onPlay = () => canvas.requestPointerLock();
+  Welcome.isShowing = true;
 }).catch((e: Error) => {
-  const error = document.getElementById('error')!;
-  error.textContent = `Error: "${e.message}"`;
-  error.style.display = 'block';
+  Status.error = e.message;
+  console.error(e);
 }).finally(() => {
-  document.getElementById('loading')!.style.display = 'none';
+  Status.isLoading = false;
 });

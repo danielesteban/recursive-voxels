@@ -6,16 +6,10 @@ import type { Palette } from 'objects/Palette';
 import type { World } from 'objects/World';
 import { Camera } from 'render/Camera';
 import type { Renderer } from 'render/Renderer';
-import type { Toolbar } from 'ui/Toolbar';
-
-enum BrushTool {
-  block,
-  blockLight,
-  light,
-}
+import { Tool, Toolbar } from 'ui/state/Toolbar.svelte';
 
 export class Gameplay {
-  private static readonly normalToLightBrush = [
+  private static readonly normalToLightBlock = [
     { normal: vec3.fromValues(0, 0, 1), value: BlockType.lightS },
     { normal: vec3.fromValues(-1, 0, 0), value: BlockType.lightW },
     { normal: vec3.fromValues(1, 0, 0), value: BlockType.lightE },
@@ -28,13 +22,7 @@ export class Gameplay {
   private readonly palette: Palette;
   private readonly raycaster = new Raycaster();
   private readonly renderer: Renderer;
-  private readonly toolbar: Toolbar;
   private readonly world: World;
-
-  private readonly brush = {
-    tool: BrushTool.block,
-    color: 46,
-  };
 
   private historyTimers = {
     lastUndo: 0,
@@ -47,42 +35,35 @@ export class Gameplay {
     renderer: Renderer,
     input: Input,
     palette: Palette,
-    toolbar: Toolbar,
     world: World,
   ) {
     this.input = input;
     this.palette = palette;
     this.renderer = renderer;
-    this.toolbar = toolbar;
     this.world = world;
-    toolbar.setActiveColor(this.brush.color);
-    toolbar.setActiveTool(this.brush.tool);
   }
 
   animate(_delta: number, time: number) {
-    const { brush, historyTimers, input, palette, raycaster, renderer, toolbar, world } = this;
+    const { historyTimers, input, palette, raycaster, renderer, world } = this;
     const buttons = input.getButtons();
 
     if (buttons.palette & ButtonState.down) {
       this.showPalette();
     }
     if (buttons.tool1 & ButtonState.down) {
-      brush.tool = BrushTool.block;
-      toolbar.setActiveTool(brush.tool);
+      Toolbar.activeTool = Tool.block;
     }
     if (buttons.tool2 & ButtonState.down) {
-      brush.tool = BrushTool.blockLight;
-      toolbar.setActiveTool(brush.tool);
+      Toolbar.activeTool = Tool.blockLight;
     }
     if (buttons.tool3 & ButtonState.down) {
-      brush.tool = BrushTool.light;
-      toolbar.setActiveTool(brush.tool);
+      Toolbar.activeTool = Tool.light;
     }
     if ((buttons.primary & ButtonState.down) || (buttons.secondary & ButtonState.down)) {
       raycaster.setFromCamera(renderer.getCamera());
       if (!palette.visible || !this.setColorFromPalette()) {
         if (buttons.modifier & ButtonState.pressed) {
-          this.setBrushFromPointer();
+          this.setToolFromPointer();
         } else {
           this.build(!!(buttons.secondary & ButtonState.down));
         }
@@ -130,8 +111,8 @@ export class Gameplay {
   }
 
   private build(isRemoving: boolean) {
-    const { brush, raycaster, world } = this;
-    const { normalToLightBrush } = Gameplay;
+    const { raycaster, world } = this;
+    const { normalToLightBlock } = Gameplay;
     const hit = raycaster.intersect(world.getChunks());
     if (!hit) {
       return;
@@ -142,15 +123,15 @@ export class Gameplay {
     if (isRemoving) {
       value = BlockType.air;
     } else {
-      switch(brush.tool) {
-        case BrushTool.block:
-          value = BlockType.block + brush.color;
+      switch(Toolbar.activeTool) {
+        case Tool.block:
+          value = BlockType.block + Toolbar.activeColor;
           break;
-        case BrushTool.blockLight:
+        case Tool.blockLight:
           value = BlockType.light;
           break;
-        case BrushTool.light: {
-          const b = normalToLightBrush.find((b) => vec3.equals(b.normal, hit.normal));
+        case Tool.light: {
+          const b = normalToLightBlock.find((b) => vec3.equals(b.normal, hit.normal));
           if (!b) return;
           value = b.value;
           break;
@@ -177,17 +158,17 @@ export class Gameplay {
     );
   }
 
-  private setBrushFromPointer() {
-    const { brush, raycaster, toolbar, world } = this;
+  private setToolFromPointer() {
+    const { raycaster, world } = this;
     const hit = raycaster.intersect(world.getChunks());
     if (!hit) {
       return;
     }
     const info = hit.obj.getInfo(hit.triangle);
-    brush.color = info.color;
+    Toolbar.activeColor = info.color;
     switch (info.blockType) {
       case BlockType.light:
-        brush.tool = 1;
+        Toolbar.activeTool = Tool.blockLight;
         break;
       case BlockType.lightS:
       case BlockType.lightW:
@@ -195,26 +176,22 @@ export class Gameplay {
       case BlockType.lightN:
       case BlockType.lightT:
       case BlockType.lightB:
-        brush.tool = 2;
+        Toolbar.activeTool = Tool.light;
         break;
       default:
-        brush.tool = 0;
+        Toolbar.activeTool = Tool.block;
     }
-    toolbar.setActiveColor(brush.color);
-    toolbar.setActiveTool(brush.tool);
   }
 
   private setColorFromPalette() {
-    const { brush, palette, raycaster, toolbar } = this;
+    const { palette, raycaster } = this;
     const hit = raycaster.intersect([palette]);
     if (!hit) {
       return false;
     }
     palette.visible = false;
-    brush.color = Math.floor((1.0 - hit.uv[1]) * 8.0) * 8 + Math.floor(hit.uv[0] * 8.0);
-    brush.tool = BrushTool.block;
-    toolbar.setActiveColor(brush.color);
-    toolbar.setActiveTool(brush.tool);
+    Toolbar.activeColor = Math.floor((1.0 - hit.uv[1]) * 8.0) * 8 + Math.floor(hit.uv[0] * 8.0);
+    Toolbar.activeTool = Tool.block;
     return true;
   }
 

@@ -12,8 +12,10 @@
     "jolt-physics": "^1.1.1"
   },
   "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^7.3.1",
     "@types/node": "^26.6.6",
     "@types/web": "^0.0.361",
+    "svelte": "^5.57.3",
     "typescript": "^7.0.2",
     "vite": "^8.3.6"
   }
