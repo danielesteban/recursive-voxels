@@ -3,6 +3,7 @@ import { model, Schema, type HydratedDocument } from 'mongoose';
 interface World {
   name: string;
   data: Buffer;
+  private: boolean;
   size: { x: number; y: number; z: number };
   version: number;
   createdAt: Date;
@@ -18,6 +19,10 @@ const WorldSchema = new Schema<World>({
   },
   data: {
     type: Buffer,
+    required: true,
+  },
+  private: {
+    type: Boolean,
     required: true,
   },
   size: {

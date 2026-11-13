@@ -75,14 +75,21 @@ Promise.all([
   frame = requestAnimationFrame(onFrame);
   FPS.reset();
 
-  await world.init(
-    location.hash.substring(1) === '/multiplayer' ? (
-      '6af11800c420506757d047dd'
-    ) : (
-      undefined
-    ));
-
-  Welcome.onPlay = () => canvas.requestPointerLock();
+  await world.init();
+  Welcome.onPlay = async (server) => {
+    if (server) {
+      try {
+        Status.isConnecting = true;
+        await world.init(server);
+      } catch (e) {
+        Status.error = (e as Error).message;
+        console.error(e);      
+      } finally {
+        Status.isConnecting = false;
+      }
+    }
+    canvas.requestPointerLock();
+  };
   Welcome.isShowing = true;
 }).catch((e: Error) => {
   Status.error = e.message;

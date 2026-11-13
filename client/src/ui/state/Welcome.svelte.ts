@@ -1,5 +1,5 @@
 let isShowing = $state(false);
-let onPlay = $state<(() => void) | null>(null);
+let onPlay = $state<((server?: string) => Promise<void>) | null>(null);
 
 export const Welcome = {
   get isShowing() { return isShowing },

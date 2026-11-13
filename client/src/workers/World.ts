@@ -102,25 +102,22 @@ Promise.all([
         let size: vec3 = config.size || vec3.scale(vec3.create(), vec3.fromValues(4, 4, 4), ChunkSize);
         let server: Server | undefined;
         if (config.data) {
-          data = config.data;
+          const world: { data: string; size: [number, number, number]; version: number } = JSON.parse(config.data);
+          if (world.version !== 1) {
+            throw new Error("Unsupported world version");
+          }
+          data = world.data;
+          size = vec3.fromValues(world.size[0], world.size[1], world.size[2]);
         }
         if (config.server) {
           server = new Server();
-          try {
-            const world = await server.connect(`world/${config.server}`);
-            data = world.data;
-            size = vec3.fromValues(world.size!.x!, world.size!.y!, world.size!.z!);
-          } catch (e) {
-            reject(e);
-            return;
-          }
+          const world = await server.connect(`world/${config.server}`);
+          data = world.data;
+          size = vec3.fromValues(world.size!.x!, world.size!.y!, world.size!.z!);
         }
         const volume = new VoxelVolume(size);
-        if (data instanceof Uint8Array) {
+        if (data) {
           await volume.load(data);
-        }
-        if (typeof data === 'string') {
-          await volume.loadEncoded(data);
         }
         if (config.generator) {
           volume.generate(
@@ -224,10 +221,9 @@ Promise.all([
 
   let saveTimer = 0;
   const save = async () => {
-    const data = await volume.save();
     postMessage({
       op: 'save',
-      volume: data,
+      volume: await volume.save(),
     } satisfies Operation);
   };
 

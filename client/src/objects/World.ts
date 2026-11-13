@@ -11,7 +11,7 @@ import type { Config, Init, Operation } from 'workers/World';
 import Worker from 'workers/World?worker';
 
 export class World {
-  private static readonly storageKey = `recursive-voxels:volume:v1`;
+  private static readonly storageKey = `recursive-voxels:volume`;
 
   private readonly balls = new Map<number, Ball>();
   private readonly chunks = new Map<string, Chunk>();
@@ -78,10 +78,14 @@ export class World {
         } satisfies Config);
       } else {
         const stored = localStorage.getItem(World.storageKey);
-        worker.postMessage({
-          ...(stored ? { data: stored } : { generator: GeneratorEscher }),
-          size: vec3.scale(vec3.create(), vec3.fromValues(4, 4, 4), ChunkSize),
-        } satisfies Config);
+        worker.postMessage((
+          stored ? {
+            data: stored,
+          } : {
+            generator: GeneratorEscher,
+            size: vec3.scale(vec3.create(), vec3.fromValues(4, 4, 4), ChunkSize),
+          }
+        ) satisfies Config);
       }
     });
   }

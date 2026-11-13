@@ -1,10 +1,11 @@
-import { notFound } from '@hapi/boom';
+import { deflate } from 'node:zlib';
+import { notFound, tooManyRequests } from '@hapi/boom';
 import { type NextFunction, type Request, type Response } from 'express';
 import { matchedData, param } from 'express-validator';
 import { v4 as uuid } from 'uuid';
 import { type WebSocket } from 'ws';
 import { Operation, World as WorldMessage } from '@shared/Protocol';
-import { BlockType, type Generator } from '@shared/WorldConstants';
+import { BlockType, type Generator, MaxPeers } from '@shared/WorldConstants';
 import { GeneratorEscher } from '@shared/WorldGeneration';
 import { checkValidationResult } from 'core/ErrorHandler';
 import { World as WorldModel } from 'models';
@@ -47,10 +48,22 @@ class World {
         });
       await this.loading;
     }
+    const compressedData = await new Promise<Uint8Array>((resolve, reject) => {
+      deflate(this.data, (err, data) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        resolve(data);
+      });
+    });
     if (ws.readyState !== ws.OPEN) {
       return;
     }
     const { data, peers, size } = this;
+    if (peers.length >= MaxPeers) {
+      throw tooManyRequests();
+    }
     const peer = ws as unknown as typeof this.peers[0];
     peer.id = uuid();
     peer.isAlive = true;
@@ -135,14 +148,17 @@ class World {
     peer.on('pong', () => {
       peer.isAlive = true;
     });
-    // @dani @incomplete
-    // Compress the data before sending it to the client
-    peer.send(WorldMessage.encode({ data, size }).finish());
+    peer.send(WorldMessage.encode({ data: compressedData, size }).finish());
     for (const p of peers) {
       p.send(Operation.encode({ peer: { id: peer.id, position: peer.position, direction: peer.direction } }).finish());
       peer.send(Operation.encode({ peer: { id: p.id, position: p.position, direction: p.direction } }).finish());
     }
     peers.push(peer);
+  }
+
+  getPeersCount() {
+    const { peers } = this;
+    return peers.length;
   }
 
   ping() {
@@ -253,29 +269,46 @@ export const connect = [
   },
 ];
 
+export const list = (_: Request, res: Response, next: NextFunction) => {
+  WorldModel
+    .find()
+    .select('name private')
+    .sort({ createdAt: -1 })
+    .lean()
+    .then((entries) => {
+      res.json(entries.map(({ _id, ...data }) => ({
+        ...data,
+        id: _id.toHexString(),
+        peers: worlds.get(_id.toHexString())?.getPeersCount() || 0,
+      })));
+    })
+    .catch(next);
+};
+
 // @dani @hack
-// Create default world
-WorldModel.countDocuments().then((count) => {
+// Create test worlds
+WorldModel.countDocuments().then(async (count) => {
   if (count > 0) {
     return;
   }
 
-  const size = { x: 64, y: 64, z: 64 };
-  const data = new Uint8Array(size.x * size.y * size.z);
-  const generator = (new Function(`return ${GeneratorEscher}`)() as Generator)(BlockType, [size.x, size.y, size.z]);
-  for (let i = 0, z = 0; z < size.z; z++) {
-    for (let y = 0; y < size.y; y++) {
-      for (let x = 0; x < size.x; x++, i++) {
-        data[i] = generator(x, y, z);
+  for (let s = 3; s > 0; s--) {
+    const size = { x: 64, y: 64, z: 64 };
+    const data = new Uint8Array(size.x * size.y * size.z);
+    const generator = (new Function(`return ${GeneratorEscher}`)() as Generator)(BlockType, [size.x, size.y, size.z]);
+    for (let i = 0, z = 0; z < size.z; z++) {
+      for (let y = 0; y < size.y; y++) {
+        for (let x = 0; x < size.x; x++, i++) {
+          data[i] = generator(x, y, z);
+        }
       }
     }
+    await WorldModel.create({
+      name: `Multiplayer test server ${s < 10 ? '0' : ''}${s}`,
+      data: Buffer.from(data),
+      private: false,
+      size,
+      version: 1,
+    });
   }
-
-  WorldModel.create({
-    _id: '6af11800c420506757d047dd',
-    name: 'Default World',
-    data: Buffer.from(data),
-    size,
-    version: 1,
-  });
 });

@@ -37,6 +37,7 @@ export enum BlockType {
 export const ChunkSize = 16;
 export const LightColor = 9;
 export const MaxLight = 16;
+export const MaxPeers = 32;
 
 export const getModel = (value: BlockType) => {
   switch (value) {

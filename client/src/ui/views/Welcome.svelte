@@ -21,41 +21,64 @@
 <script lang="ts">
   import Controls from 'ui/components/Controls.svelte';
   import Dialog from 'ui/components/Dialog.svelte';
+  import Worlds from 'ui/components/Worlds.svelte';
   import { Welcome } from 'ui/state/Welcome.svelte';
 
-  const play = () => {
+  let isShowingWorlds = $state(false);
+
+  const singleplayer = () => {
     Welcome.isShowing = false;
     Welcome.onPlay?.();
   };
+
+  const multiplayer = () => {
+    isShowingWorlds = true;
+  };
+
+  const onWorldsJoin = (server: string) => {
+    Welcome.isShowing = false;
+    Welcome.onPlay?.(server);
+  };
+
+  const onWorldsCancel = () => {
+    isShowingWorlds = false;
+  };
 </script>
 
-<Dialog bind:enabled={Welcome.isShowing} ondismiss={play}>
+<Dialog bind:enabled={Welcome.isShowing} isModal={isShowingWorlds} ondismiss={singleplayer}>
   <div class="wrapper">
     <div class="title">
       recursive-voxels
     </div>
-    <div class="content">
-      <div class="info">
-        <div>
-          <div class="heading">
-            Welcome!
+    {#if isShowingWorlds}
+      <Worlds onjoin={onWorldsJoin} oncancel={onWorldsCancel} />
+    {:else}
+      <div class="content">
+        <div class="info">
+          <div>
+            <div class="heading">
+              Welcome!
+            </div>
+            <p>
+              This idea came to me while dreaming about the 1953 piece by M.C. Escher: "Cubic Space Division".
+            </p>
+            <p>
+              The physics are simulated with the stellar JoltPhysics library. Everything else has been carefully coded by hand, including the custom WebGPU engine/renderer.
+            </p>
           </div>
-          <p>
-            This idea came to me while dreaming about the 1953 piece by M.C. Escher: "Cubic Space Division".
-          </p>
-          <p>
-            The physics are simulated with the stellar JoltPhysics library. Everything else has been carefully coded by hand, including the custom WebGPU engine/renderer.
-          </p>
+          <div class="actions">
+            <button onclick={singleplayer}>
+              Singleplayer
+            </button>
+            <button onclick={multiplayer}>
+              Multiplayer
+            </button>
+          </div>
         </div>
-        <div class="settings">
-          <button onclick={play}>
-            Play
-          </button>
-        </div>
+        <Controls entries={moveControls} />
+        <Controls entries={buildControls} />
       </div>
-      <Controls entries={moveControls} />
-      <Controls entries={buildControls} />
-    </div>
+    {/if}
   </div>
 </Dialog>
 
@@ -93,22 +116,23 @@
     margin-bottom: 1rem;
   }
 
-  .settings {
+  .actions {
     display: flex;
     flex-direction: column;
-    gap: .5rem;
+    gap: 0.5rem;
   }
 
-  .settings > button {
+  .actions > button {
     display: flex;
     align-items: center;
     justify-content: center;
     height: 2.5rem;
     font-size: 1rem;
     font-family: inherit;
+    line-height: inherit;
     color: inherit;
     background: #393;
-    border-radius: 0.75rem;
+    border-radius: 0.25rem;
     margin: 0;
     padding: 0;
     border: 0;

@@ -2,10 +2,12 @@
   import { Status } from 'ui/state/Status.svelte';
 </script>
 
-{#if Status.error || Status.isLoading}
+{#if Status.error || Status.isConnecting || Status.isLoading}
   <div class="status" class:error={Status.error}>
     {#if Status.error}
       Error: {Status.error}
+    {:else if Status.isConnecting}
+      Connecting...
     {:else}
       Loading...
     {/if}

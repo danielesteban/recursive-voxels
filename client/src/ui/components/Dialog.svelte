@@ -32,7 +32,6 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.2);
     backdrop-filter: blur(0.5rem);
     display: grid;
     place-items: center;
@@ -41,7 +40,6 @@
   }
 
   .dialog {
-    backdrop-filter: blur(2rem);
     background: rgba(0, 0, 0, 0.2);
     border-radius: 1rem;
   }
