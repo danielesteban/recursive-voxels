@@ -91,6 +91,10 @@
     cursor: pointer;
   }
 
+  .world:hover {
+    background: rgba(51, 153, 51, 0.25);
+  }
+
   .world.selected {
     background: #393;
   }
