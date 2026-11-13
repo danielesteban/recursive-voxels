@@ -7,6 +7,7 @@ import { Player } from 'objects/Player';
 import { RecursiveInstances } from 'compute/RecursiveInstances';
 import { VoxelLightmap } from 'compute/VoxelLightmap';
 import type { Renderer } from 'render/Renderer';
+import { Disconnected } from 'ui/state/Disconnected.svelte';
 import type { Config, Init, Operation } from 'workers/World';
 import Worker from 'workers/World?worker';
 
@@ -230,9 +231,8 @@ export class World {
         break;
       }
       case 'disconnected':
-        // @dani @incomplete
-        // Notify user with a dialog
-        this.destroy();
+        Disconnected.isShowing = true;
+        this.init();
         break;
     }
   }

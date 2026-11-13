@@ -24,15 +24,13 @@
   import Worlds from 'ui/components/Worlds.svelte';
   import { Welcome } from 'ui/state/Welcome.svelte';
 
-  let isShowingWorlds = $state(false);
-
   const singleplayer = () => {
     Welcome.isShowing = false;
     Welcome.onPlay?.();
   };
 
   const multiplayer = () => {
-    isShowingWorlds = true;
+    Welcome.isShowingWorlds = true;
   };
 
   const onWorldsJoin = (server: string) => {
@@ -41,16 +39,16 @@
   };
 
   const onWorldsCancel = () => {
-    isShowingWorlds = false;
+    Welcome.isShowingWorlds = false;
   };
 </script>
 
-<Dialog bind:enabled={Welcome.isShowing} isModal={isShowingWorlds} ondismiss={singleplayer}>
+<Dialog bind:enabled={Welcome.isShowing} isModal={Welcome.isShowingWorlds} ondismiss={singleplayer}>
   <div class="wrapper">
     <div class="title">
       recursive-voxels
     </div>
-    {#if isShowingWorlds}
+    {#if Welcome.isShowingWorlds}
       <Worlds onjoin={onWorldsJoin} oncancel={onWorldsCancel} />
     {:else}
       <div class="content">
@@ -123,18 +121,9 @@
   }
 
   .actions > button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 2.5rem;
-    font-size: 1rem;
-    font-family: inherit;
-    line-height: inherit;
-    color: inherit;
     background: #393;
-    border-radius: 0.25rem;
-    margin: 0;
+    font-size: 1rem;
+    height: 2.5rem;
     padding: 0;
-    border: 0;
   }
 </style>

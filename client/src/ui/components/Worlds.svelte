@@ -46,6 +46,8 @@
         </div>
       {/each}
     </div>
+  {:catch error}
+    <div class="error">{error.message}</div>
   {/await}
   <div class="actions">
     <button class="join" disabled={!selected} onclick={join}>
@@ -63,10 +65,14 @@
     grid-template-rows: 1fr auto;
   }
 
-  .loading {
+  .loading, .error {
     display: grid;
     align-items: center;
     justify-content: center;
+  }
+
+  .error {
+    color: #e99;
   }
 
   .worlds {
@@ -98,27 +104,11 @@
     padding: 1rem 0;
   }
 
-  .actions > button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: inherit;
-    font-family: inherit;
-    line-height: inherit;
-    background: #2b2a33;
-    color: inherit;
-    border-radius: 0.25rem;
-    margin: 0;
-    padding: 0.5rem 1rem;
-    border: 0;
-  }
-
   .actions > button.join {
     background: #393;
   }
 
   .actions > button:disabled {
     background: #2b2a33;
-    opacity: 0.5;
   }
 </style>
