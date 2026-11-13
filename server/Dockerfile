@@ -4,7 +4,7 @@ RUN mkdir -p /usr/src/server
 WORKDIR /usr/src/server
 
 ENV NODE_ENV=production
-RUN corepack enable && corepack prepare pnpm@latest-12 --activate
+RUN npm install -g corepack@latest && corepack enable && corepack prepare pnpm@latest-12 --activate
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install
 
