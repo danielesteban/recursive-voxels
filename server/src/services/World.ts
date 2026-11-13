@@ -1,4 +1,4 @@
-import { deflate } from 'node:zlib';
+import { deflate, inflate } from 'node:zlib';
 import { notFound, tooManyRequests } from '@hapi/boom';
 import { type NextFunction, type Request, type Response } from 'express';
 import { matchedData, param } from 'express-validator';
@@ -38,11 +38,19 @@ class World {
         .findById(this.id)
         .select('data size')
         .lean()
-        .then((world) => {
+        .then(async (world) => {
           if (!world) {
             throw notFound();
           }
-          this.data = new Uint8Array(world.data.buffer);
+          this.data = await new Promise((resolve, reject) => {
+            inflate(Buffer.from(world.data.buffer), (err, data) => {
+              if (err) {
+                reject(err);
+                return;
+              }
+              resolve(new Uint8Array(data));
+            });
+          });
           this.size = world.size;
           delete this.loading;
         });
@@ -189,12 +197,19 @@ class World {
     this.saving = WorldModel
       .updateOne({ _id: id }, {
         $set: {
-          // @dani @incomplete
-          // Compress the data before saving it to the db
-          data: Buffer.from(data),
+          data: await new Promise((resolve, reject) => {
+            deflate(data, (err, data) => {
+              if (err) {
+                reject(err);
+                return;
+              }
+              resolve(data);
+            });
+          }),
         },
       })
-      .then(() => {});
+      .then(() => {})
+      .catch(() => {});
     await this.saving;
   }
 
@@ -305,7 +320,15 @@ WorldModel.countDocuments().then(async (count) => {
     }
     await WorldModel.create({
       name: `Multiplayer test server ${s < 10 ? '0' : ''}${s}`,
-      data: Buffer.from(data),
+      data: await new Promise((resolve, reject) => {
+        deflate(data, (err, data) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          resolve(data);
+        });
+      }),
       private: false,
       size,
       version: 1,

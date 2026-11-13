@@ -13,7 +13,7 @@
       for (let x = 0; x < icon.width; x++, i += 4) {
         let light: number;
         if (y === 0 || y === icon.height - 1 || x === 0 || x === icon.width - 1) {
-          light = 255 - Math.floor(Math.random() * 16);
+          light = 255 - Math.floor(Math.random() * 8);
         } else {
           light = 255 - Math.floor(Math.random() * 32);
         }

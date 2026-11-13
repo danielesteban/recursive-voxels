@@ -59,7 +59,7 @@ export class Chunk extends Mesh<ChunkGeometry> {
               default: {
                 let light: number;
                 if (y === 0 || y === size - 1 || x === 0 || x === size - 1) {
-                  light = 255 - Math.floor(Math.random() * 16);
+                  light = 255 - Math.floor(Math.random() * 8);
                 } else {
                   light = 255 - Math.floor(Math.random() * 32);
                 }
