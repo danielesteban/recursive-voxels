@@ -1,6 +1,7 @@
 import { mat4, quat, vec3 } from 'gl-matrix';
 import type { RecursiveInstances } from 'compute/RecursiveInstances';
 import type { VoxelLightmap } from 'compute/VoxelLightmap';
+import { LerpWrapped } from 'math/LerpWrapped';
 import PlayerMaterialCode from 'objects/PlayerMaterial.wgsl';
 import { Camera, CameraGPUStruct } from 'render/Camera';
 import { Geometry } from 'render/Geometry';
@@ -128,11 +129,13 @@ export class Player extends Mesh {
     position: vec3;
     direction: vec3;
   };
+  private readonly worldSize: vec3;
 
   constructor(
     renderer: Renderer,
     instances: RecursiveInstances,
     lightmap: VoxelLightmap,
+    size: vec3,
     position: vec3,
     direction: vec3
   ) {
@@ -198,6 +201,7 @@ export class Player extends Mesh {
       timer: (performance.now() / 1000) + Math.random(),
     };
     this.targetTransform = { position, direction };
+    this.worldSize = size;
     this.frustumCulled = false;
     this.renderOrder = 1;
     this.scale = vec3.fromValues(0.7, 0.7, 0.7);
@@ -224,7 +228,7 @@ export class Player extends Mesh {
 
   private static readonly aux6 = vec3.create();
   override animate(delta: number, time: number) {
-    const { direction, faceTexture, position, renderer, targetTransform } = this;
+    const { direction, faceTexture, position, renderer, targetTransform, worldSize } = this;
     const { aux6: aux } = Player;
     if (!vec3.equals(direction, targetTransform.direction)) {
       // @dani @incomplete
@@ -232,8 +236,16 @@ export class Player extends Mesh {
       // But I dunno why I get NaN values if I do that
       this.direction = vec3.lerp(aux, direction, targetTransform.direction, Math.exp(-20 * delta));
     }
-    if (!vec3.equals(position, targetTransform.position)) {
-      this.position = vec3.lerp(aux, position, targetTransform.position, Math.exp(-40 * delta));
+    if (
+      LerpWrapped(
+        aux,
+        position,
+        targetTransform.position,
+        worldSize,
+        delta
+      )
+    ) {
+      this.position = aux;
     }
     if (time > faceTexture.timer) {
       faceTexture.timer = time + 0.1 + Math.random() * 0.9;

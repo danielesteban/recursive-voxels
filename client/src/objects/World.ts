@@ -160,7 +160,7 @@ export class World {
   }
 
   private onWorkerMessage({ data }: { data: Operation }) {
-    const { balls, chunks, instances, lightmap, peers, player, renderer, worker } = this;
+    const { balls, chunks, instances, lightmap, peers, player, renderer, size, worker } = this;
     switch (data.op) {
       case 'balls': {
         const { buffer } = data;
@@ -200,7 +200,7 @@ export class World {
         const { id, position, direction } = data;
         let peer = peers.get(id);
         if (!peer) {
-          peer = new Player(renderer, instances!, lightmap!, position, direction);
+          peer = new Player(renderer, instances!, lightmap!, size, position, direction);
           peers.set(id, peer);
           renderer.addObject(peer);
         }

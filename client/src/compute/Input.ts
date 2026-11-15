@@ -1,4 +1,5 @@
 import { vec3 } from 'gl-matrix';
+import { LerpWrapped } from 'math/LerpWrapped';
 import { Camera } from 'render/Camera';
 import type { Renderer } from 'render/Renderer';
 
@@ -320,10 +321,10 @@ export class Input {
     return data;
   }
 
-  private static readonly aux4 = Array.from({ length: 3 * 3 * 3 }, () => vec3.create());
+  private static readonly aux4 = vec3.create();
   update(delta: number, player: vec3, size: vec3) {
     const { camera, look } = this;
-    const { aux4: targets } = Input;
+    const { aux4: target } = Input;
 
     const damp = Math.exp(-20 * delta);
     let directionNeedsUpdate = false;
@@ -342,24 +343,16 @@ export class Input {
       this.updateDirection();
     }
 
-    for (let i = 0, z = -1; z <= 1; z++) {
-      for (let y = -1; y <= 1; y++) {
-        for (let x = -1; x <= 1; x++, i++) {
-          const target = targets[i];
-          vec3.set(target, x, y, z);
-          vec3.multiply(target, target, size);
-          vec3.add(target, target, camera.position);
-        }
-      }
-    }
-    targets.sort((a, b) => vec3.sqrDist(a, player) - vec3.sqrDist(b, player));
-    if (vec3.distance(targets[0], player) > 0.001) {
-      camera.position = vec3.lerp(
-        vec3.create(),
-        targets[0],
+    if (
+      LerpWrapped(
+        target,
+        camera.position,
         player,
-        Math.exp(-40 * delta)
-      );
+        size,
+        delta
+      )
+    ) {
+      camera.position = target;
     }
   }
 }
