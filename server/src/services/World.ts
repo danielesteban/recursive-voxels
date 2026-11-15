@@ -93,6 +93,22 @@ class World {
       try {
         const op = Operation.decode(new Uint8Array(buffer));
         switch (op.type) {
+          case 'ball': {
+            const { position, impulse } = op.ball;
+            if (
+              !position
+              || typeof position.x !== 'number'
+              || typeof position.y !== 'number'
+              || typeof position.z !== 'number'
+              || !impulse
+              || typeof impulse.x !== 'number'
+              || typeof impulse.y !== 'number'
+              || typeof impulse.z !== 'number'
+            ) {
+              throw new Error('Invalid ball');
+            }
+            break;
+          }
           case 'peer': {
             const { position, direction } = op.peer;
             if (

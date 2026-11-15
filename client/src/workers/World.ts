@@ -232,6 +232,25 @@ Promise.all([
     } satisfies Operation);
   };
 
+  let ballId = 0;
+  const shootBall = (position: vec3, impulse: vec3) => {
+    volume.wrap(position);
+    let body = ballBodies.get(ballId);
+    if (body) {
+      physics.setBodyPosition(body, position, true);
+    } else {
+      body = physics.addBody({
+        allowSleeping: false,
+        layer: PhysicsLayer.dynamic,
+        position,
+        shape: physics.getShape({ type: 'sphere', radius: 0.5 }),
+      });
+      ballBodies.set(ballId, body);
+    }
+    physics.addBodyImpulse(body, impulse);
+    ballId = (ballId + 1) % 32;
+  };
+
   const aux = vec3.create();
   const wrapBody = (body: ReturnType<Physics['addBody']>) => {
     const pos = body.GetPosition();
@@ -386,26 +405,25 @@ Promise.all([
     }
   };
 
-  let ballId = 0;
   self.onmessage = ({ data }: { data: Operation }) => {
     switch (data.op) {
       case 'ball': {
         const { position, impulse } = data;
-        volume.wrap(position);
-        let body = ballBodies.get(ballId);
-        if (body) {
-          physics.setBodyPosition(body, position, true);
-        } else {
-          body = physics.addBody({
-            allowSleeping: false,
-            layer: PhysicsLayer.dynamic,
-            position,
-            shape: physics.getShape({ type: 'sphere', radius: 0.5 }),
-          });
-          ballBodies.set(ballId, body);
-        }
-        physics.addBodyImpulse(body, impulse);
-        ballId = (ballId + 1) % 32;
+        shootBall(position, impulse);
+        server?.send({
+          ball: {
+            position: {
+              x: position[0],
+              y: position[1],
+              z: position[2],
+            },
+            impulse: {
+              x: impulse[0],
+              y: impulse[1],
+              z: impulse[2],
+            },
+          },
+        });
         break;
       }
       case 'balls': {
@@ -487,6 +505,21 @@ Promise.all([
 
   server?.setOnOperation((op) => {
     switch(op.type) {
+      case 'ball': {
+        shootBall(
+          vec3.fromValues(
+            op.ball!.position!.x!,
+            op.ball!.position!.y!,
+            op.ball!.position!.z!
+          ),
+          vec3.fromValues(
+            op.ball!.impulse!.x!,
+            op.ball!.impulse!.y!,
+            op.ball!.impulse!.z!
+          )
+        );
+        break;
+      }
       case 'peer': {
         let peer = peers.get(op.peer!.id!);
         if (!op.peer!.position || !op.peer!.direction) {

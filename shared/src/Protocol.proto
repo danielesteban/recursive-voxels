@@ -12,6 +12,11 @@ message uVec3 {
   uint32 z = 2;
 }
 
+message OpBall {
+  Vec3 position = 0;
+  Vec3 impulse = 1;
+}
+
 message OpPeer {
   string id = 0;
   Vec3 position = 1;
@@ -25,8 +30,9 @@ message OpUpdate {
 
 message Operation {
   oneof type {
-    OpPeer peer = 0;
-    OpUpdate update = 1;
+    OpBall ball = 0;
+    OpPeer peer = 1;
+    OpUpdate update = 2;
   }
 }
 
