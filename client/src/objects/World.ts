@@ -209,8 +209,9 @@ export class World {
       }
       case 'peerDisconnected': {
         const { id } = data;
-        if (peers.has(id)) {
-          renderer.removeObject(peers.get(id)!);
+        let peer = peers.get(id);
+        if (peer) {
+          renderer.removeObject(peer);
           peers.delete(id);
         }
         break;

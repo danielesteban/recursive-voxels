@@ -7,6 +7,12 @@ export enum PhysicsLayer {
   dynamic,
 }
 
+export enum PhysicsMotion {
+  static,
+  dynamic,
+  kinematic,
+}
+
 type PhysicsShape = (
   {
     type: 'sphere';
@@ -137,6 +143,7 @@ export class Physics {
     gravityFactor = 1,
     layer,
     mass,
+    motion,
     position,
     shape,
   }: {
@@ -145,16 +152,32 @@ export class Physics {
     gravityFactor?: number;
     layer: PhysicsLayer;
     mass?: number;
+    motion?: PhysicsMotion;
     position: vec3;
     shape: initJolt.Shape;
   }) {
     const { bodyInterface, Jolt } = this;
+    let motionType: initJolt.EMotionType;
+    switch (motion) {
+      default:
+        motionType = layer === PhysicsLayer.static ? Jolt.EMotionType_Static : Jolt.EMotionType_Dynamic;
+        break;
+      case PhysicsMotion.static:
+        motionType = Jolt.EMotionType_Static;
+        break;
+      case PhysicsMotion.dynamic:
+        motionType = Jolt.EMotionType_Dynamic;
+        break;
+      case PhysicsMotion.kinematic:
+        motionType = Jolt.EMotionType_Kinematic;
+        break;
+    }
     const pos = new Jolt.RVec3(position[0], position[1], position[2]);
     const creationSettings = new Jolt.BodyCreationSettings(
       shape,
       pos,
       Jolt.Quat.prototype.sIdentity(),
-      layer === PhysicsLayer.static ? Jolt.EMotionType_Static : Jolt.EMotionType_Dynamic,
+      motionType,
       layer
     );
     Jolt.destroy(pos);
@@ -188,6 +211,13 @@ export class Physics {
     const imp = new Jolt.Vec3(impulse[0], impulse[1], impulse[2]);
     bodyInterface.AddImpulse(body.GetID(), imp);
     Jolt.destroy(imp);
+  }
+  
+  moveKinematic(body: initJolt.Body, position: vec3, delta: number) {
+    const { bodyInterface, Jolt } = this;
+    const pos = new Jolt.RVec3(position[0], position[1], position[2]);
+    bodyInterface.MoveKinematic(body.GetID(), pos, Jolt.Quat.prototype.sIdentity(), delta);
+    Jolt.destroy(pos);
   }
 
   setBodyPosition(body: initJolt.Body, position: vec3, resetVelocity = false) {

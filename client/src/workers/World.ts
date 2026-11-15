@@ -1,6 +1,6 @@
 import { vec3 } from 'gl-matrix';
 import { BlockType, ChunkSize, type Generator } from '@shared/WorldConstants';
-import { Physics, PhysicsLayer } from 'compute/Physics';
+import { Physics, PhysicsLayer, PhysicsMotion } from 'compute/Physics';
 import { VoxelMesher } from 'compute/VoxelMesher';
 import { VoxelPhysics } from 'compute/VoxelPhysics';
 import { VoxelVolume } from 'compute/VoxelVolume';
@@ -142,6 +142,11 @@ Promise.all([
 
   const ballBodies = new Map<number, ReturnType<Physics['addBody']>>();
   const chunkBodies = new Map<string, ReturnType<Physics['addBody']>[]>();
+  const peers = new Map<string, {
+    body: ReturnType<Physics['addBody']>;
+    position: vec3;
+    direction: vec3;
+  }>();
 
   const player = {
     body: physics.addBody({
@@ -320,6 +325,10 @@ Promise.all([
     vec3.scaleAndAdd(player.velocity, player.velocity, player.movement, 1 - damp);
     physics.setBodyLinearVelocity(player.body, player.velocity);
 
+    for (const peer of peers.values()) {
+      physics.moveKinematic(peer.body, peer.position, delta);
+    }
+
     physics.step(delta);
 
     {
@@ -342,6 +351,7 @@ Promise.all([
         ballsBuffer = null;
       }
     }
+
     {
       const position = wrapBody(player.body);
       postMessage({
@@ -362,6 +372,17 @@ Promise.all([
           },
         },
       });
+    }
+
+    // @dani @incomplete
+    // Send all peers into a single message
+    for (const [id, peer] of peers.entries()) {
+      postMessage({
+        op: 'peer',
+        id,
+        position: peer.position,
+        direction: peer.direction,
+      } satisfies Operation);
     }
   };
 
@@ -467,27 +488,51 @@ Promise.all([
   server?.setOnOperation((op) => {
     switch(op.type) {
       case 'peer': {
+        let peer = peers.get(op.peer!.id!);
         if (!op.peer!.position || !op.peer!.direction) {
+          if (peer) {
+            physics.removeBody(peer.body);
+            peers.delete(op.peer!.id!);
+          }
           postMessage({
             op: 'peerDisconnected',
             id: op.peer!.id!,
           } satisfies Operation);
           return;
         }
-        postMessage({
-          op: 'peer',
-          id: op.peer!.id!,
-          position: vec3.fromValues(
+        if (!peer) {
+          const position = vec3.fromValues(
             op.peer!.position!.x!,
             op.peer!.position!.y!,
             op.peer!.position!.z!
-          ),
-          direction: vec3.fromValues(
-            op.peer!.direction!.x!,
-            op.peer!.direction!.y!,
-            op.peer!.direction!.z!
-          ),
-        } satisfies Operation);
+          );
+          peer = {
+            body: physics.addBody({
+              allowRotation: false,
+              gravityFactor: 0,
+              layer: PhysicsLayer.dynamic,
+              mass: 1000,
+              motion: PhysicsMotion.kinematic,
+              position,
+              shape: physics.getShape({ type: 'sphere', radius: 0.5 }),
+            }),
+            position,
+            direction: vec3.create(),
+          };
+          peers.set(op.peer!.id!, peer);
+        }
+        vec3.set(
+          peer.position,
+          op.peer!.position!.x!,
+          op.peer!.position!.y!,
+          op.peer!.position!.z!
+        );
+        vec3.set(
+          peer.direction,
+          op.peer!.direction!.x!,
+          op.peer!.direction!.y!,
+          op.peer!.direction!.z!
+        );
         break;
       }
       case 'update': {
