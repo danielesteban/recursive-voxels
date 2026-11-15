@@ -7,6 +7,7 @@ import { World } from 'objects/World';
 import { Renderer } from 'render/Renderer';
 import Environment from 'textures/citrus_orchard_road_puresky_2k.jpg';
 import { FPS } from 'ui/state/FPS.svelte';
+import { Settings } from 'ui/state/Settings.svelte';
 import { Status } from 'ui/state/Status.svelte';
 import { Welcome } from 'ui/state/Welcome.svelte';
 import { mountUI } from 'ui/UI';
@@ -21,10 +22,12 @@ Promise.all([
   Renderer.create(canvas),
 ])
 .then(async ([environment, renderer]) => {
+  renderer.getCamera().fov = Settings.fov;
   renderer.setEnvironment(environment);
 
   let clock: number;
   let frame: number;
+  let resolution = Settings.resolution;
 
   const input = new Input(renderer);
   const palette = new Palette(renderer);
@@ -52,7 +55,7 @@ Promise.all([
   };
   const onResize = () => {
     const rect = app.getBoundingClientRect();
-    renderer.setSize(rect.width, rect.height);
+    renderer.setSize(rect.width, rect.height, resolution);
   };
   const onVisibility = () => {
     if (document.visibilityState === 'visible') {
@@ -74,6 +77,14 @@ Promise.all([
   clock = performance.now() / 1000;
   frame = requestAnimationFrame(onFrame);
   FPS.reset();
+
+  Settings.onFov = () => {
+    renderer.getCamera().fov = Settings.fov;
+  };
+  Settings.onResolution = () => {
+    resolution = Settings.resolution;
+    onResize();
+  };
 
   await world.init();
   Welcome.onPlay = async (server) => {

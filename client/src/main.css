@@ -57,3 +57,8 @@ button:disabled {
 canvas, svg {
   vertical-align: middle;
 }
+
+input[type=checkbox], input[type=range] {
+  accent-color:#393;
+  cursor:pointer
+}

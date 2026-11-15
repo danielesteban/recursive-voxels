@@ -104,7 +104,7 @@ Promise.all([
         if (config.data) {
           const world: { data: string; size: [number, number, number]; version: number } = JSON.parse(config.data);
           if (world.version !== 1) {
-            throw new Error("Unsupported world version");
+            throw new Error('Unsupported world version');
           }
           data = world.data;
           size = vec3.fromValues(world.size[0], world.size[1], world.size[2]);

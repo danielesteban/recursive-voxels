@@ -7,11 +7,11 @@ export class Camera {
   private readonly device: GPUDevice;
   private readonly buffer: GPUBuffer;
 
-  readonly fov = 75;
   readonly near = 0.1;
   readonly far = 1024;
 
   private _aspect = 1;
+  private _fov = 75;
   private readonly _position = vec3.create();
   private readonly _direction = vec3.create();
 
@@ -51,6 +51,15 @@ export class Camera {
 
   set aspect(value: number) {
     this._aspect = value;
+    this.projectionNeedsUpdate = true;
+  }
+
+  get fov(): Readonly<number> {
+    return this._fov;
+  }
+
+  set fov(value: number) {
+    this._fov = value;
     this.projectionNeedsUpdate = true;
   }
 
