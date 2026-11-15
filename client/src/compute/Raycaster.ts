@@ -13,44 +13,34 @@ export type Intersection = {
 };
 
 export class Raycaster {
-  private static readonly rays: Ray[] = [];
-
-  readonly origin = vec3.create();
-  readonly direction = vec3.create();
-  maxDistance = 128;
-
-  setFromCamera(camera: Camera, position?: vec2) {
-    const { origin, direction } = this;
-    vec3.copy(origin, camera.position);
-    vec3.set(direction, position?.[0] || 0, position?.[1] || 0, 0.5);
-    vec3.transformMat4(direction, direction, camera.getProjectionInverse());
-    vec3.transformMat4(direction, direction, camera.getViewInverse());
-    vec3.sub(direction, direction, origin);
-    vec3.normalize(direction, direction);
-    return this;
-  }
+  readonly ray = new Ray();
 
   intersect(objects: { raycast: (ray: Ray, intersections: Intersection[]) => void }[]) {
-    const { origin, direction, maxDistance } = this;
-    const { rays } = Raycaster;
-    const ray = rays.pop() || new Ray();
-    vec3.copy(ray.origin, origin);
-    vec3.copy(ray.direction, direction);
-    ray.maxDistance = maxDistance;
+    const { ray } = this;
     const intersections: Intersection[] = [];
     for (const obj of objects) {
       obj.raycast(ray, intersections);
     }
     intersections.sort((a, b) => a.distance - b.distance);
-    rays.push(ray);
     return intersections[0];
+  }
+
+  setFromCamera(camera: Camera, position?: vec2) {
+    const { ray } = this;
+    vec3.copy(ray.origin, camera.position);
+    vec3.set(ray.direction, position?.[0] || 0, position?.[1] || 0, 0.5);
+    vec3.transformMat4(ray.direction, ray.direction, camera.getProjectionInverse());
+    vec3.transformMat4(ray.direction, ray.direction, camera.getViewInverse());
+    vec3.sub(ray.direction, ray.direction, ray.origin);
+    vec3.normalize(ray.direction, ray.direction);
+    return this;
   }
 }
 
 export class Ray {
   readonly origin = vec3.create();
   readonly direction = vec3.create();
-  maxDistance = Infinity;
+  maxDistance = 128;
 
   private static readonly aux1 = vec3.create();
   private static readonly aux2 = vec3.create();

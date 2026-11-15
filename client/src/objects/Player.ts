@@ -234,7 +234,9 @@ export class Player extends Mesh {
       // @dani @incomplete
       // This should prolly be a slerp
       // But I dunno why I get NaN values if I do that
-      this.direction = vec3.lerp(aux, direction, targetTransform.direction, Math.exp(-20 * delta));
+      vec3.lerp(aux, direction, targetTransform.direction, Math.exp(-20 * delta));
+      vec3.normalize(aux, aux);
+      this.direction = aux;
     }
     if (
       LerpWrapped(
