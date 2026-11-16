@@ -4,15 +4,15 @@
 
   const colors = Palette.split('\n');
 
-  const getIcon = (scale: [number, number]) => {
-    const icon = document.createElement('canvas');
-    icon.width = Math.floor(8 * scale[0]);
-    icon.height = Math.floor(8 * scale[1]);
-    const pixels = new ImageData(icon.width, icon.height);
-    for (let i = 0, y = 0; y < icon.height; y++) {
-      for (let x = 0; x < icon.width; x++, i += 4) {
+  const getTexture = (width: number, height: number) => {
+    const texture = document.createElement('canvas');
+    texture.width = width;
+    texture.height = height;
+    const pixels = new ImageData(texture.width, texture.height);
+    for (let i = 0, y = 0; y < texture.height; y++) {
+      for (let x = 0; x < texture.width; x++, i += 4) {
         let light: number;
-        if (y === 0 || y === icon.height - 1 || x === 0 || x === icon.width - 1) {
+        if (y === 0 || y === texture.height - 1 || x === 0 || x === texture.width - 1) {
           light = 255 - Math.floor(Math.random() * 8);
         } else {
           light = 255 - Math.floor(Math.random() * 32);
@@ -20,30 +20,70 @@
         pixels.data.set([light, light, light, 255], i);
       }
     }
-    const ctx = icon.getContext('2d')!;
+    const ctx = texture.getContext('2d')!;
     ctx.putImageData(pixels, 0, 0);
-    return {
-      src: icon.toDataURL(),
-      width: `${icon.width * 4}px`,
-      height: `${icon.height * 4}px`,
-    };
+    return texture;
+  };
+
+  const getIcon = (pos: [number, number], scale: [number, number]) => {
+    const icon = document.createElement('canvas');
+    icon.width = 128;
+    icon.height = 128;
+    const ctx = icon.getContext('2d')!;
+    ctx.imageSmoothingEnabled = false;
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = '#fff';
+
+    const cos30 = Math.cos(Math.PI / 6);
+    const sin30 = Math.sin(Math.PI / 6);
+    const centerX = icon.width * pos[0];
+    const centerY = icon.height * pos[1];
+    const width = icon.width / 2;
+    const height = icon.height / 2;
+
+    const textureTop = getTexture(8 * scale[0], 8 * scale[0]);
+    const textureSide = getTexture(8 * scale[0], 8 * scale[1]);
+
+    ctx.setTransform(
+      -cos30, -sin30,
+      cos30, -sin30,
+      centerX, centerY
+    );
+    ctx.drawImage(textureTop, 0, 0, width * scale[0], height * scale[0]);
+    ctx.strokeRect(0, 0, width * scale[0], height * scale[0]);
+    ctx.setTransform(
+      -cos30, -sin30,
+      0, 1,
+      centerX, centerY
+    );
+    ctx.drawImage(textureSide, 0, 0, width * scale[0], height * scale[1]);
+    ctx.strokeRect(0, 0, width * scale[0], height * scale[1]);
+    ctx.setTransform(
+      cos30, -sin30,
+      0, 1,
+      centerX, centerY
+    );
+    ctx.drawImage(textureSide, 0, 0, width * scale[0], height * scale[1]);
+    ctx.strokeRect(0, 0, width * scale[0], height * scale[1]);
+
+    return icon.toDataURL();
   };
 
   const tools = [
     {
       id: Tool.block,
-      icon: getIcon([1, 1]),
+      icon: getIcon([0.5, 0.5], [1, 1]),
       isColored: true,
       shortcut: '1',
     },
     {
       id: Tool.blockLight,
-      icon: getIcon([1, 1]),
+      icon: getIcon([0.5, 0.5], [1, 1]),
       shortcut: '2',
     },
     {
       id: Tool.light,
-      icon: getIcon([0.5, 1]),
+      icon: getIcon([0.5, 0.25], [0.5, 1.5]),
       shortcut: '3',
     }
   ];
@@ -64,15 +104,12 @@
       <div class="icon">
         <img
           alt="icon"
-          src={tool.icon.src} 
-          style:width={tool.icon.width}
-          style:height={tool.icon.height}
+          src={tool.icon} 
         />
         {#if tool.isColored}
           <div
             class="tint"
-            style:width={tool.icon.width}
-            style:height={tool.icon.height}
+            style="mask-image: url({tool.icon})"
           ></div>
         {/if}
       </div>
@@ -131,7 +168,8 @@
   }
 
   .icon > img {
-    image-rendering: pixelated;
+    width: 100%;
+    height: 100%;
   }
 
   .icon .tint {
@@ -139,7 +177,10 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
+    width: 100%;
+    height: 100%;
     background: var(--color);
+    mask-size: 100%;
     mix-blend-mode: multiply;
   }
 
