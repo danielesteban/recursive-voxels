@@ -2,6 +2,7 @@ const storageKey = 'recursive-voxels:settings';
 const storageVersion = 1
 const initial = {
   fov: 75,
+  muteSFX: false,
   resolution: 1,
 };
 const stored = localStorage.getItem(storageKey);
@@ -11,17 +12,20 @@ if (stored) {
     if (
       data.version !== storageVersion
       || typeof data.fov !== 'number'
+      || typeof data.muteSFX !== 'boolean'
       || typeof data.resolution !== 'number'
     ) {
       throw new Error('Unsupported settings version');
     }
     initial.fov = data.fov;
+    initial.muteSFX = data.muteSFX;
     initial.resolution = data.resolution;
   } catch (e) {}
 }
 const persist = () => {
   localStorage.setItem(storageKey, JSON.stringify({
     fov,
+    muteSFX,
     resolution,
     version: storageVersion,
   }));
@@ -29,6 +33,8 @@ const persist = () => {
 
 let fov = $state(initial.fov);
 let onFov = $state<(() => void) | null>(null);
+let muteSFX = $state(initial.muteSFX);
+let onMuteSFX = $state<(() => void) | null>(null);
 let resolution = $state(initial.resolution);
 let onResolution = $state<(() => void) | null>(null);
 
@@ -41,6 +47,14 @@ export const Settings = {
   },
   get onFov() { return onFov },
   set onFov(value) { onFov = value },
+  get muteSFX() { return muteSFX },
+  set muteSFX(value) {
+    muteSFX = value;
+    persist();
+    onMuteSFX?.();
+  },
+  get onMuteSFX() { return onMuteSFX },
+  set onMuteSFX(value) { onMuteSFX = value },
   get resolution() { return resolution },
   set resolution(value) {
     resolution = value;

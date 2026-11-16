@@ -10,15 +10,29 @@ export class SFX {
 
   private readonly buffers: Map<string, AudioBuffer> = new Map();
   private context?: AudioContext;
+  private _isMuted = false;
+  private output?: GainNode;
 
   constructor() {
     this.onFirstInteraction = this.onFirstInteraction.bind(this);
     document.addEventListener('keydown', this.onFirstInteraction);
     document.addEventListener('pointerdown', this.onFirstInteraction);
   }
+
+  get isMuted() {
+    return this._isMuted;
+  }
+
+  set isMuted(value: boolean) {
+    const { output } = this;
+    this._isMuted = value;
+    if (output) {
+      output.gain.value = value ? 0 : 1;
+    }
+  }
   
   onFirstInteraction() {
-    const { buffers } = this;
+    const { buffers, isMuted } = this;
     const { sounds } = SFX;
     document.removeEventListener('keydown', this.onFirstInteraction);
     document.removeEventListener('pointerdown', this.onFirstInteraction);
@@ -29,6 +43,8 @@ export class SFX {
       const buffer = await context.decodeAudioData(data);
       buffers.set(key, buffer);
     });
+    this.output = new GainNode(context, { gain: isMuted ? 0 : 1 });
+    this.output.connect(context.destination);
   }
 
   playAt(
@@ -38,9 +54,9 @@ export class SFX {
     detune: number = 0,
     filtering?: BiquadFilterOptions
   ) {
-    const { buffers, context } = this;
+    const { buffers, context, output } = this;
     const buffer = buffers.get(sound);
-    if (!buffer || !context) {
+    if (!buffer || !context || !output) {
       return;
     }
     const source = new AudioBufferSourceNode(context, { buffer, detune });
@@ -58,17 +74,17 @@ export class SFX {
     if (filtering) {
       filter = new BiquadFilterNode(context, filtering);
       gain.connect(filter);
-      filter.connect(context.destination);
+      filter.connect(output);
     } else {
-      gain.connect(context.destination);
+      gain.connect(output);
     }
     source.onended = () => {
       source.disconnect(panner);
       panner.disconnect(gain);
       if (filter) {
-        filter.disconnect(context.destination);
+        filter.disconnect(output);
       } else {
-        gain.disconnect(context.destination);
+        gain.disconnect(output);
       }
     };
     source.start(context.currentTime);

@@ -24,6 +24,7 @@ Promise.all([
 ])
 .then(async ([environment, renderer]) => {
   renderer.getCamera().fov = Settings.fov;
+  renderer.getSFX().isMuted = Settings.muteSFX;
   renderer.setEnvironment(environment);
 
   let clock: number;
@@ -81,6 +82,9 @@ Promise.all([
 
   Settings.onFov = () => {
     renderer.getCamera().fov = Settings.fov;
+  };
+  Settings.onMuteSFX = () => {
+    renderer.getSFX().isMuted = Settings.muteSFX;
   };
   Settings.onResolution = () => {
     resolution = Settings.resolution;
