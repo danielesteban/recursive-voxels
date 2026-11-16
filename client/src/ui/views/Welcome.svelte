@@ -22,10 +22,11 @@
   import Controls from 'ui/components/Controls.svelte';
   import Dialog from 'ui/components/Dialog.svelte';
   import Worlds from 'ui/components/Worlds.svelte';
+  import { Dialogs } from 'ui/state/Dialogs.svelte';
   import { Welcome } from 'ui/state/Welcome.svelte';
 
   const singleplayer = () => {
-    Welcome.isShowing = false;
+    Dialogs.hide('welcome');
     Welcome.onPlay?.();
   };
 
@@ -34,7 +35,7 @@
   };
 
   const onWorldsJoin = (server: string) => {
-    Welcome.isShowing = false;
+    Dialogs.hide('welcome');
     Welcome.onPlay?.(server);
   };
 
@@ -43,7 +44,7 @@
   };
 </script>
 
-<Dialog bind:enabled={Welcome.isShowing} isModal={Welcome.isShowingWorlds} ondismiss={singleplayer}>
+<Dialog id="welcome" isModal={Welcome.isShowingWorlds} ondismiss={singleplayer}>
   <div class="wrapper">
     <div class="title">
       recursive-voxels

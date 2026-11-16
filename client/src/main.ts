@@ -7,6 +7,7 @@ import { World } from 'objects/World';
 import { Renderer } from 'render/Renderer';
 import Environment from 'textures/citrus_orchard_road_puresky_2k.jpg';
 import { FPS } from 'ui/state/FPS.svelte';
+import { Dialogs } from 'ui/state/Dialogs.svelte';
 import { Settings } from 'ui/state/Settings.svelte';
 import { Status } from 'ui/state/Status.svelte';
 import { Welcome } from 'ui/state/Welcome.svelte';
@@ -101,7 +102,7 @@ Promise.all([
     }
     canvas.requestPointerLock();
   };
-  Welcome.isShowing = true;
+  Dialogs.show('welcome');
 }).catch((e: Error) => {
   Status.error = e.message;
   console.error(e);

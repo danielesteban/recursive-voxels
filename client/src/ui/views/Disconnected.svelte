@@ -1,16 +1,16 @@
 <script lang="ts">
   import Dialog from 'ui/components/Dialog.svelte';
-  import { Disconnected } from 'ui/state/Disconnected.svelte';
+  import { Dialogs } from 'ui/state/Dialogs.svelte';
   import { Welcome } from 'ui/state/Welcome.svelte';
 
   const dismiss = () => {
-    Disconnected.isShowing = false;
     Welcome.isShowingWorlds = true;
-    Welcome.isShowing = true;
+    Dialogs.hide('disconnected');
+    Dialogs.show('welcome');
   };
 </script>
 
-<Dialog bind:enabled={Disconnected.isShowing} isModal>
+<Dialog id="disconnected" isModal>
   <div class="wrapper">
     <div class="error">
       Connection lost

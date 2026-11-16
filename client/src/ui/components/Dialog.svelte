@@ -1,22 +1,23 @@
 <script lang="ts">
   import { type Snippet } from 'svelte';
+  import { Dialogs } from 'ui/state/Dialogs.svelte';
 
-  let { children, enabled = $bindable(), isModal = false, ondismiss }: {
+  let { children, id, isModal = false, ondismiss }: {
     children: Snippet;
-    enabled: boolean;
+    id: string;
     isModal?: boolean;
     ondismiss?: () => void;
   } = $props();
 
   const dismiss = (e: MouseEvent) => {
     if (e.currentTarget === e.target) {
-      enabled = false;
+      Dialogs.hide(id);
       ondismiss?.();
     }
   };
 </script>
 
-{#if enabled}
+{#if Dialogs.active === id}
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="overlay" onmousedown={!isModal ? dismiss : null}>
     <div class="dialog">

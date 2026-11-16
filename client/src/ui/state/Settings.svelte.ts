@@ -27,15 +27,12 @@ const persist = () => {
   }));
 };
 
-let isShowing = $state(false);
 let fov = $state(initial.fov);
 let onFov = $state<(() => void) | null>(null);
 let resolution = $state(initial.resolution);
 let onResolution = $state<(() => void) | null>(null);
 
 export const Settings = {
-  get isShowing() { return isShowing },
-  set isShowing(value) { isShowing = value },
   get fov() { return fov },
   set fov(value) {
     fov = value;
