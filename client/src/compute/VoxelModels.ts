@@ -149,10 +149,10 @@ export const Models = {
   ),
   [BlockModel.lightT]: transformModel(
     blockModel,
-    mat4.fromRotationTranslationScale(mat4.create(), rotation, vec3.fromValues(0, -0.4375, 0), vec3.fromValues(0.375, 0.125, 0.75)),
+    mat4.fromRotationTranslationScale(mat4.create(), rotation, vec3.fromValues(0, -0.4375, 0), vec3.fromValues(0.375, 0.125, 0.375)),
   ),
   [BlockModel.lightB]: transformModel(
     blockModel,
-    mat4.fromRotationTranslationScale(mat4.create(), rotation, vec3.fromValues(0, 0.4375, 0), vec3.fromValues(0.375, 0.125, 0.75)),
+    mat4.fromRotationTranslationScale(mat4.create(), rotation, vec3.fromValues(0, 0.4375, 0), vec3.fromValues(0.375, 0.125, 0.375)),
   ),
 };
