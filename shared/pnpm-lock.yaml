@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      alea:
+        specifier: ^1.0.1
+        version: 1.0.1
     devDependencies:
       protobufjs:
         specifier: ^8.8.1
@@ -56,6 +60,9 @@ packages:
     resolution: {integrity: sha512-oJlA3XiRm7Cyk6qFD2Jn8ak9B7jSy0qy00ADO3+8dpT0LSjFihQYv4C02LFCSYJV3Q37xYwwRy5m+IpIiUzqWw==}
     engines: {node: '>=0.4.0'}
     hasBin: true
+
+  alea@1.0.1:
+    resolution: {integrity: sha512-QU+wv+ziDXaMxRdsQg/aH7sVfWdhKps5YP97IIwFkHCsbDZA3k87JXoZ5/iuemf4ntytzIWeScrRpae8+lDrXA==}
 
   argparse@2.0.1:
     resolution: {integrity: sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q==}
@@ -253,6 +260,8 @@ snapshots:
       acorn: 8.19.0
 
   acorn@8.19.0: {}
+
+  alea@1.0.1: {}
 
   argparse@2.0.1: {}
 

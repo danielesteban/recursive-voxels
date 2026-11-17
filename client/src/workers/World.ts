@@ -1,3 +1,4 @@
+import alea from 'alea';
 import { vec3 } from 'gl-matrix';
 import { BlockType, ChunkSize, type Generator } from '@shared/WorldConstants';
 import { Physics, PhysicsLayer, PhysicsMotion } from 'compute/Physics';
@@ -121,7 +122,7 @@ Promise.all([
         }
         if (config.generator) {
           volume.generate(
-            (new Function(`return ${config.generator}`)() as Generator)(BlockType, size as [number, number, number])
+            (new Function(`return ${config.generator}`)() as Generator)(alea, BlockType, size as [number, number, number])
           );
         }
         resolve({ server, volume });

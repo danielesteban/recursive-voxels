@@ -1,3 +1,5 @@
+import type aleaType from 'alea';
+
 export enum BlockFace {
   south,
   west,
@@ -122,6 +124,6 @@ export const isOpaque = (value: BlockType) => {
 };
 
 export type Generator = (
-  (blockType: typeof BlockType, size: [number, number, number]) =>
+  (alea: typeof aleaType, blockType: typeof BlockType, size: [number, number, number]) =>
     (x: number, y: number, z: number) => number
 );

@@ -8,6 +8,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "alea": "^1.0.1",
     "fflate": "^0.8.3",
     "gl-matrix": "^3.4.4",
     "jolt-physics": "^1.1.1"
@@ -15,7 +16,7 @@
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.3.1",
     "@types/node": "^26.6.6",
-    "@types/web": "^0.0.366",
+    "@types/web": "^0.0.367",
     "svelte": "^5.57.3",
     "typescript": "^7.0.2",
     "vite": "^8.3.8"

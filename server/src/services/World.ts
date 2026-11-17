@@ -1,4 +1,5 @@
 import { deflate, inflate } from 'node:zlib';
+import alea from 'alea';
 import { notFound, tooManyRequests } from '@hapi/boom';
 import { type NextFunction, type Request, type Response } from 'express';
 import { matchedData, param } from 'express-validator';
@@ -6,7 +7,7 @@ import { v4 as uuid } from 'uuid';
 import { type WebSocket } from 'ws';
 import { Operation, World as WorldMessage } from '@shared/Protocol';
 import { BlockType, type Generator, MaxPeers } from '@shared/WorldConstants';
-import { GeneratorEscher } from '@shared/WorldGeneration';
+import { GeneratorCave, GeneratorEscher, GeneratorPlatform } from '@shared/WorldGeneration';
 import { checkValidationResult } from 'core/ErrorHandler';
 import { World as WorldModel } from 'models';
 
@@ -323,10 +324,15 @@ WorldModel.countDocuments().then(async (count) => {
     return;
   }
 
-  for (let s = 3; s > 0; s--) {
+  const generators = [
+    GeneratorEscher,
+    GeneratorCave,
+    GeneratorPlatform,
+  ];
+  for (let s = generators.length; s > 0; s--) {
     const size = { x: 64, y: 64, z: 64 };
     const data = new Uint8Array(size.x * size.y * size.z);
-    const generator = (new Function(`return ${GeneratorEscher}`)() as Generator)(BlockType, [size.x, size.y, size.z]);
+    const generator = (new Function(`return ${generators[s - 1]}`)() as Generator)(alea, BlockType, [size.x, size.y, size.z]);
     for (let i = 0, z = 0; z < size.z; z++) {
       for (let y = 0; y < size.y; y++) {
         for (let x = 0; x < size.x; x++, i++) {

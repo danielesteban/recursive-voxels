@@ -8,5 +8,8 @@
   "devDependencies": {
     "protobufjs": "^8.8.1",
     "protobufjs-cli": "^2.7.1"
+  },
+  "dependencies": {
+    "alea": "^1.0.1"
   }
 }
