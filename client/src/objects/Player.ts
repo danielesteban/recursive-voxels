@@ -192,7 +192,7 @@ export class Player extends Mesh {
             resource: samplers.lighting,
           },
         ],
-      }],
+      }]
     );
     this.instances = instances;
     this.faceTexture = {
@@ -255,6 +255,10 @@ export class Player extends Mesh {
       renderer.getDevice().queue.writeBuffer(faceTexture.gpu, 0, faceTexture.cpu);
     }
     super.animate(delta, time);
+  }
+
+  override get buffers() {
+    return [this.instances.getInstances().gpu];
   }
 
   override get instanceCount() {

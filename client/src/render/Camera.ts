@@ -7,11 +7,11 @@ export class Camera {
   private readonly device: GPUDevice;
   private readonly buffer: GPUBuffer;
 
-  readonly near = 0.1;
-  readonly far = 1024;
-
   private _aspect = 1;
   private _fov = 75;
+  private _near = 0.1;
+  private _far = 1024;
+  private _fog = 512;
   private readonly _position = vec3.create();
   private readonly _direction = vec3.create();
 
@@ -33,7 +33,8 @@ export class Camera {
     this.device = device;
     this.buffer = device.createBuffer({
       size: (
-        (this.position as Float32Array).byteLength + 4
+        (this.position as Float32Array).byteLength
+        + 4
         + (this.projection as Float32Array).byteLength
         + (this.view as Float32Array).byteLength
       ),
@@ -45,7 +46,7 @@ export class Camera {
     return this.buffer;
   }
 
-  get aspect(): Readonly<number> {
+  get aspect() {
     return this._aspect;
   }
 
@@ -54,13 +55,40 @@ export class Camera {
     this.projectionNeedsUpdate = true;
   }
 
-  get fov(): Readonly<number> {
+  get fov() {
     return this._fov;
   }
 
   set fov(value: number) {
     this._fov = value;
     this.projectionNeedsUpdate = true;
+  }
+
+  get near() {
+    return this._near;
+  }
+
+  set near(value: number) {
+    this._near = value;
+    this.projectionNeedsUpdate = true;
+  }
+
+  get far() {
+    return this._far;
+  }
+
+  set far(value: number) {
+    this._far = value;
+    this.projectionNeedsUpdate = true;
+  }
+
+  get fog() {
+    return this._fog;
+  }
+
+  set fog(value: number) {
+    this._fog = value;
+    this.bufferNeedsUpdate = true;
   }
 
   get position(): Readonly<vec3> {
@@ -154,6 +182,7 @@ export class Camera {
     const {
       device,
       buffer,
+      fog,
       position,
     } = this;
     const projection = this.getProjection();
@@ -163,7 +192,8 @@ export class Camera {
     }
     this.bufferNeedsUpdate = false;  
     device.queue.writeBuffer(buffer, 0, new Float32Array([
-      ...position, 0,
+      ...position,
+      fog,
       ...projection,
       ...view,
     ]));
@@ -173,6 +203,7 @@ export class Camera {
 export const CameraGPUStruct = /* wgsl */`
 struct Camera {
   position: vec3f,
+  fog: f32,
   projection: mat4x4<f32>,
   view: mat4x4<f32>,
 }

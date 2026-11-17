@@ -53,7 +53,7 @@ fn frag_main(fragment: FragmentInput) -> FragmentOutput {
     fragment.worldPos
   );
   let depth = distance(camera.position, fragment.worldPos);
-  let alpha = 1.0 - clamp(depth / 512.0, 0.0, 1.0);
+  let alpha = 1.0 - clamp(depth / camera.fog, 0.0, 1.0);
   var output: FragmentOutput;
   output.color = vec4f(light * alpha, alpha);
   output.data = vec4f(normal, depth);

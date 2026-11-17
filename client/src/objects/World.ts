@@ -21,11 +21,13 @@ export class World {
   private lightmap?: VoxelLightmap;
   private readonly player = vec3.create();
   private readonly renderer: Renderer;
+  private renderDistance: number;
   private readonly size = vec3.create();
   private worker?: Worker;
 
-  constructor(renderer: Renderer) {
+  constructor(renderer: Renderer, renderDistance: number) {
     this.renderer = renderer;
+    this.renderDistance = renderDistance;
   }
 
   destroy() {
@@ -56,7 +58,7 @@ export class World {
   }
 
   init(server?: string) {
-    const { renderer } = this;
+    const { renderer, renderDistance } = this;
     this.destroy();
     return new Promise<void>((resolve, reject) => {
       const worker = new Worker();
@@ -67,7 +69,7 @@ export class World {
         }
         const { config } = data;
         worker.onmessage = this.onWorkerMessage.bind(this);
-        this.instances = new RecursiveInstances(renderer, config.size);
+        this.instances = new RecursiveInstances(renderer, renderDistance, config.size);
         this.lightmap = new VoxelLightmap(renderer, config.size);
         vec3.copy(this.size, config.size);
         this.worker = worker;
@@ -111,6 +113,12 @@ export class World {
       direction,
       movement,
     } satisfies Operation);
+  }
+
+  setRenderDistance(distance: number) {
+    const { instances, size } = this;
+    this.renderDistance = distance;
+    instances?.setGrid(distance, size);
   }
 
   shootBall(position: vec3, impulse: vec3) {

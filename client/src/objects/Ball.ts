@@ -112,10 +112,7 @@ export class Ball extends Mesh {
             resource: samplers.lighting,
           },
         ],
-      }],
-      [
-        instances.getInstances().gpu,
-      ],
+      }]
     );
     this.color = color;
     this.instances = instances;
@@ -129,6 +126,10 @@ export class Ball extends Mesh {
     super.destroy();
   }
   
+  override get buffers() {
+    return [this.instances.getInstances().gpu];
+  }
+
   override get instanceCount() {
     return this.instances.getInstances().count;
   }

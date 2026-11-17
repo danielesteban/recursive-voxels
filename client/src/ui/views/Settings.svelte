@@ -34,6 +34,20 @@
           />
         </div>
         <div class="setting">
+          <label for="settings-render-distance">
+            Render Distance
+            <span>({Settings.renderDistance}m)</span>
+          </label>
+          <input
+            id="settings-render-distance"
+            type="range"
+            min={128}
+            max={1024}
+            step={128}
+            bind:value={Settings.renderDistance}
+          />
+        </div>
+        <div class="setting">
           <label for="settings-resolution">
             Resolution
             <span>({Math.round(Settings.resolution * 100)}%)</span>

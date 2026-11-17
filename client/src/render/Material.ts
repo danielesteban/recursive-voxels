@@ -27,7 +27,6 @@ export class Material {
     cullMode?: GPUCullMode;
     depthTest?: boolean;
     depthWrite?: boolean;
-    instanceCount?: number;
     multisample?: boolean;
     outputColor?: boolean;
     outputData?: boolean;
@@ -85,8 +84,8 @@ export class Material {
 
   render(
     pass: GPURenderPassEncoder,
-    bindings: GPUBindGroup[],
-    buffers: GPUBuffer[],
+    bindings: readonly GPUBindGroup[],
+    buffers: readonly GPUBuffer[],
     geometry: Geometry,
     instanceCount: number
   ) {
@@ -95,11 +94,11 @@ export class Material {
     for (let i = 0, l = bindings.length; i < l; i++) {
       pass.setBindGroup(i, bindings[i]);
     }
-    pass.setIndexBuffer(geometry.getIndex(), 'uint16');
     pass.setVertexBuffer(0, geometry.getVertices());
     for (let i = 0, l = buffers.length; i < l; i++) {
       pass.setVertexBuffer(i + 1, buffers[i]);
     }
+    pass.setIndexBuffer(geometry.getIndex(), 'uint16');
     pass.drawIndexed(geometry.getIndexCount(), instanceCount);
   }
 }

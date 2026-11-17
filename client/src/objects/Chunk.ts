@@ -144,10 +144,7 @@ export class Chunk extends Mesh<ChunkGeometry> {
             resource: samplers.lighting,
           },
         ],
-      }],
-      [
-        instances.getInstances().gpu,
-      ],
+      }]
     );
     this.instances = instances;
     this.position = vec3.scale(vec3.create(), position, ChunkSize);
@@ -161,6 +158,10 @@ export class Chunk extends Mesh<ChunkGeometry> {
 
   getInfo(triangle: number) {
     return this.getGeometry().getInfo(triangle);
+  }
+
+  override get buffers() {
+    return [this.instances.getInstances().gpu];
   }
 
   override get instanceCount() {

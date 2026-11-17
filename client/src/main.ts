@@ -23,6 +23,8 @@ Promise.all([
   Renderer.create(canvas),
 ])
 .then(async ([environment, renderer]) => {
+  renderer.getCamera().far = Settings.renderDistance * 2;
+  renderer.getCamera().fog = Settings.renderDistance;
   renderer.getCamera().fov = Settings.fov;
   renderer.getSFX().isMuted = Settings.muteSFX;
   renderer.setEnvironment(environment);
@@ -33,7 +35,7 @@ Promise.all([
 
   const input = new Input(renderer);
   const palette = new Palette(renderer);
-  const world = new World(renderer);
+  const world = new World(renderer, Settings.renderDistance);
   const gameplay = new Gameplay(renderer, input, palette, world);
 
   renderer
@@ -85,6 +87,11 @@ Promise.all([
   };
   Settings.onMuteSFX = () => {
     renderer.getSFX().isMuted = Settings.muteSFX;
+  };
+  Settings.onRenderDistance = () => {
+    renderer.getCamera().far = Settings.renderDistance * 2;
+    renderer.getCamera().fog = Settings.renderDistance;
+    world.setRenderDistance(Settings.renderDistance);
   };
   Settings.onResolution = () => {
     resolution = Settings.resolution;

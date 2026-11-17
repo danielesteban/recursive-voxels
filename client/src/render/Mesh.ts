@@ -8,7 +8,6 @@ import type { Renderer } from 'render/Renderer';
 export class Mesh<GeometryType extends Geometry = Geometry, MaterialType extends Material = Material> {
   protected readonly renderer: Renderer;
   private readonly bindings: GPUBindGroup[];
-  private readonly buffers: GPUBuffer[];
   private readonly geometry: GeometryType;
   private readonly material: MaterialType;
   
@@ -31,6 +30,8 @@ export class Mesh<GeometryType extends Geometry = Geometry, MaterialType extends
   private readonly _position = vec3.fromValues(0, 0, 0);
   private readonly _rotation = quat.fromValues(0, 0, 0, 1);
   private readonly _scale = vec3.fromValues(1, 1, 1);
+
+  private _buffers: GPUBuffer[] = [];
   private _instanceCount = 1;
 
   frustumCulled = true;
@@ -41,8 +42,7 @@ export class Mesh<GeometryType extends Geometry = Geometry, MaterialType extends
     renderer: Renderer,
     geometry: GeometryType,
     material: MaterialType,
-    bindings: Omit<GPUBindGroupDescriptor, 'layout'>[] = [],
-    buffers: GPUBuffer[] = [],
+    bindings: Omit<GPUBindGroupDescriptor, 'layout'>[] = []
   ) {
     const device = renderer.getDevice();
     this.renderer = renderer;
@@ -86,7 +86,6 @@ export class Mesh<GeometryType extends Geometry = Geometry, MaterialType extends
         })
       )),
     ];
-    this.buffers = buffers;
   }
 
   destroy() {
@@ -119,6 +118,14 @@ export class Mesh<GeometryType extends Geometry = Geometry, MaterialType extends
   set scale(value: vec3) {
     vec3.copy(this._scale, value);
     this.transform.cpu.needsUpdate = true;
+  }
+
+  get buffers(): Readonly<GPUBuffer[]> {
+    return this._buffers;
+  }
+
+  set buffers(value: GPUBuffer[]) {
+    this._buffers = value;
   }
 
   get instanceCount() {
