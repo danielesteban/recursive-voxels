@@ -48,8 +48,8 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: inherit;
   font-family: inherit;
+  font-size: inherit;
   font-weight: inherit;
   line-height: inherit;
   background: #2b2a33;
@@ -67,6 +67,6 @@ canvas, svg {
 }
 
 input[type=checkbox], input[type=range] {
-  accent-color:#393;
-  cursor:pointer
+  accent-color: #393;
+  cursor: pointer;
 }
