@@ -1,6 +1,8 @@
 [recursive-voxels](https://recursive-voxels.gatunes.com)
 ==
 
+[![screenshot](screenshot.png)](https://recursive-voxels.gatunes.com/)
+
 #### Local development
 
  * [MongoDB](https://mongodb.com/try/download/community) >= 9
