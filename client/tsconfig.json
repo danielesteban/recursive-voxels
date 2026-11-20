@@ -3,9 +3,9 @@
   "compilerOptions": {
     "paths": {
       "@shared/*": ["../shared/src/*"],
-      "*": ["./src/*"],
+      "*": ["./src/*"]
     },
-    "types": ["@types/web"],
+    "types": ["@types/web"]
   },
-  "exclude": ["dist", "node_modules"],
+  "exclude": ["dist", "node_modules"]
 }
