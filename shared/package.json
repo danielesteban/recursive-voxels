@@ -5,11 +5,11 @@
   "scripts": {
     "build:protocol": "pbjs -t static-module -w ./src/protobuf.wrapper.js --dependency protobufjs/minimal.js --es6 ./src/Protocol.proto -o ./src/Protocol.js && pbts -o ./src/Protocol.d.ts ./src/Protocol.js"
   },
+  "dependencies": {
+    "alea": "^1.0.1"
+  },
   "devDependencies": {
     "protobufjs": "^8.8.1",
     "protobufjs-cli": "^2.7.1"
-  },
-  "dependencies": {
-    "alea": "^1.0.1"
   }
 }
