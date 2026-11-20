@@ -1,3 +1,10 @@
+@font-face {
+  font-family: 'Silkscreen';
+  font-style: normal;
+  font-weight: 400;
+  src: url(fonts/Silkscreen.woff2) format('woff2');
+}
+
 :root {
   font-size: 16px;
   color-scheme: dark;
@@ -43,6 +50,7 @@ button {
   justify-content: center;
   font-size: inherit;
   font-family: inherit;
+  font-weight: inherit;
   line-height: inherit;
   background: #2b2a33;
   color: inherit;
